@@ -1,6 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2020 Bastiaan Meelberg
+# Modified 2021 Werner Krenn (Leaf/Soil)
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -15,6 +16,7 @@
 # Based on https://weatherlink.github.io/weatherlink-live-local-api/
 #
 # Bug Fixes September 2020
+# added leaf/soil October 2021
 
 """
 
@@ -44,7 +46,7 @@ import weeutil.weeutil
 import sys
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.2.9'
+DRIVER_VERSION = '0.3.0'
 
 MM2INCH = 1 / 25.4
 
@@ -152,6 +154,8 @@ class WllStation:
         self.poll_interval = 10
         self.txid_iss = None
         self.extra1 = None
+        self.soil = None
+        self.leaf = None
 
         self.davis_date_stamp = None
         self.system_date_stamp = None
@@ -181,6 +185,17 @@ class WllStation:
             self.extra1 = int(data)
             loginf('Extra sensor is using id: {}'.format(self.extra1))
 
+    def set_leaf(self, data):
+        if data:
+            self.leaf = int(data)
+            loginf('Leaf sensor is using txid: {}'.format(self.leaf))
+
+    def set_soil(self, data):
+        if data:
+            self.soil = int(data)
+            loginf('Soil sensor is using txid: {}'.format(self.soil))
+
+
     def decode_data_wll(self, data):
 
         iss_data = None
@@ -189,6 +204,8 @@ class WllStation:
         lss_temp_hum_data = None
         iss_udp_data = None
         extra_data1 = None
+        leaf_data = None
+        soil_data = None
 
         self.current_davis_data = data
 
@@ -209,8 +226,22 @@ class WllStation:
 
             if condition.get('txid') == self.txid_iss and condition.get('data_structure_type') == 1:
                 iss_data = condition
+
+            #if condition.get('data_structure_type') == 2:
+            #    if self.leaf and condition.get('txid') == self.leaf:    
+            #       leaf_data = condition
+
             if condition.get('data_structure_type') == 2:
-                leaf_soil_data = condition
+                if soil_data == None:
+                   if self.soil and condition.get('txid') == self.soil:    
+                      soil_data = condition
+                if leaf_data == None:
+                   if self.leaf and condition.get('txid') == self.leaf:    
+                      leaf_data = condition
+                if not self.leaf and not self.soil:
+                  #if condition.get('data_structure_type') == 2:
+                   leaf_soil_data = condition
+
 
             if condition.get('data_structure_type') == 3:
                 lss_bar_data = condition
@@ -237,6 +268,22 @@ class WllStation:
 
             # Rain
             ## Fix: Check for NoneType
+
+            #rain_rate_last=0
+            #rain_rate_hi=0
+            #rainfall_last_15_min=0
+            #rain_rate_hi_last_15_min=0
+            #rainfall_last_60_min=0
+            #rainfall_last_24_hr=0
+            #rainfall_daily=0
+            #rainfall_monthly=41.2
+            #rainfall_year=864.4
+            #rain_storm=0
+            #rain_storm_start_at=1970-01-01+01%3A00
+            #rain_storm_last=1.2
+            #rain_storm_last_start_at=2021-10-23+05%3A18
+            #rain_storm_last_end_at=2021-10-25+08%3A01
+
             self.rainbarrel.rain = iss_udp_data['rainfall_daily']
 
             if iss_udp_data['rain_rate_last'] is None:
@@ -269,8 +316,19 @@ class WllStation:
 
             # wind speed and direction average for the last 10 minutes
             # (not recorded in archive but used elsewhere)
+            packet['windSpeed1'] = iss_data["wind_speed_avg_last_1_min"]
+            packet['windDir1'] = iss_data["wind_dir_scalar_avg_last_1_min"]
             packet['windSpeed10'] = iss_data["wind_speed_avg_last_10_min"]
             packet['windDir10'] = iss_data["wind_dir_scalar_avg_last_10_min"]
+            packet['windGustSpeed10'] = iss_data["wind_speed_hi_last_10_min"]
+            packet['windGustDir10'] = iss_data["wind_dir_at_hi_speed_last_10_min"]
+
+            #wind_speed_last=4.8
+            #wind_dir_last=157
+            #wind_speed=1.3
+            #wind_dir=172
+            #wind_gust=4.8
+            #wind_gdir=124
             
             # most recent valid temperature **(F)**
             packet['outTemp'] = iss_data['temp']
@@ -289,6 +347,7 @@ class WllStation:
             
             # **(F)**
             packet['THSW'] = iss_data['thsw_index']
+            packet['THW'] = iss_data['thw_index']
             
             packet['outWetbulb'] = iss_data['wet_bulb']
 
@@ -327,12 +386,59 @@ class WllStation:
             packet['inHumidity'] = lss_temp_hum_data['hum_in']
             # **(F)**
             packet['inDewpoint'] = lss_temp_hum_data['dew_point_in']
+            # packet['heatindex1'] = lss_temp_hum_data['heat_index_in']
+
+        if leaf_soil_data:
+            # most recent valid soil temp **(F)**
+            packet['soilTemp1'] = leaf_soil_data['temp_1']
+            packet['soilTemp2'] = leaf_soil_data['temp_2']
+            packet['soilTemp3'] = leaf_soil_data['temp_3']
+            packet['soilTemp4'] = leaf_soil_data['temp_4']
+            # most recent valid soilmoisture **(cb)**
+            packet['soilMoist1'] = leaf_soil_data['moist_soil_1']
+            packet['soilMoist2'] = leaf_soil_data['moist_soil_2']
+            packet['soilMoist3'] = leaf_soil_data['moist_soil_3']
+            packet['soilMoist4'] = leaf_soil_data['moist_soil_4']
+            packet['leafWet1'] = leaf_soil_data['wet_leaf_1']
+            packet['leafWet2'] = leaf_soil_data['wet_leaf_2']
+            packet['signal6'] = leaf_soil_data['rx_state']
+
+        if leaf_data:
+            # most recent valid leaf temp **(F)**
+            packet['leafTemp1'] = leaf_data['temp_1']
+            packet['leafTemp2'] = leaf_data['temp_2']
+            # most recent valid leaf 
+            packet['leafWet1'] = leaf_data['wet_leaf_1']
+            packet['leafWet2'] = leaf_data['wet_leaf_2']
+            packet['signal7'] = leaf_data['rx_state']
+
+        if soil_data:
+            # most recent valid soil temp **(F)**
+            packet['soilTemp1'] = soil_data['temp_1']
+            packet['soilTemp2'] = soil_data['temp_2']
+            packet['soilTemp3'] = soil_data['temp_3']
+            packet['soilTemp4'] = soil_data['temp_4']
+            # most recent valid soilmoisture **(cb)**
+            packet['soilMoist1'] = soil_data['moist_soil_1']
+            packet['soilMoist2'] = soil_data['moist_soil_2']
+            packet['soilMoist3'] = soil_data['moist_soil_3']
+            packet['soilMoist4'] = soil_data['moist_soil_4']
+            packet['signal8'] = soil_data['rx_state']
+
 
         if extra_data1:
             if extra_data1.get('temp'):
-                packet['extraTemp1'] = extra_data1['temp']
+               packet['extraTemp1'] = extra_data1['temp']
             if extra_data1.get('hum'):
-                packet['extraHumid1'] = extra_data1['hum']
+               packet['extraHumid1'] = extra_data1['hum']
+            #if extra_data1.get('dew_point'):
+               #packet['dewpoint1'] = extra_data1['dew_point']
+            #if extra_data1.get('wet_bulb'):
+               #packet['wetbulb1'] = extra_data1['wet_bulb']
+            #if extra_data1.get('heat_index'):
+               #packet['heatindex1'] = extra_data1['heat_index']
+            if extra_data1.get('rx_state'):
+               packet['signal2'] = extra_data1['rx_state']
 
         return packet
 
@@ -402,12 +508,14 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
 
         self.station.set_poll_interval(float(stn_dict.get('poll_interval', 10)))
 
-        self.wll_ip = stn_dict.get('wll_ip', '192.168.1.47')
+        self.wll_ip = stn_dict.get('wll_ip', '192.168.0.121')
 
         if self.wll_ip is None:
             logerr("No Weatherlink Live IP provided")
 
         self.station.set_extra1(stn_dict.get('extra_id'))
+        self.station.set_soil(stn_dict.get('soil'))
+        self.station.set_leaf(stn_dict.get('leaf'))
 
         # Tells the WW to begin broadcasting UDP data and continue for 1 hour seconds
         self.station.real_rime_url = 'http://{}:80/v1/real_time?duration=3600'.format(self.wll_ip)
@@ -523,6 +631,8 @@ def make_request_using_socket(url):
 
 # To test this driver, run it directly as follows:
 #   PYTHONPATH=/home/weewx/bin python /home/weewx/bin/user/weatherlinkliveudp.py
+#   for RasPi:  PYTHONPATH=/usr/share/weewx python3 /usr/share/weewx/user/weatherlinkliveudp.py
+#
 if __name__ == "__main__":
     import optparse
 
