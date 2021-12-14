@@ -11,7 +11,7 @@ To see a live demo of this plugin in vist [meteo-otterlo.nl](https://meteo-otter
 1) Download the driver
 
 ```
-wget -O weatherlinkliveudp.zip https://github.com/grebleem/WeatherLinkLiveUDP/archive/master.zip
+wget -O weatherlinkliveudp.zip https://github.com/WernerKr/weewx-weatherlinkliveudp/blob/master/weewx-weatherlinkliveudp.zip
 ```
 
 2) Install the driver
