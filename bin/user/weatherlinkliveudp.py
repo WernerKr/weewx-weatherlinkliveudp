@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2020 Bastiaan Meelberg
-# Modified 2021 Werner Krenn (Leaf/Soil)
+# Modified 2021 Werner Krenn (Leaf/Soil/...)
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -269,21 +269,6 @@ class WllStation:
             # Rain
             ## Fix: Check for NoneType
 
-            #rain_rate_last=0
-            #rain_rate_hi=0
-            #rainfall_last_15_min=0
-            #rain_rate_hi_last_15_min=0
-            #rainfall_last_60_min=0
-            #rainfall_last_24_hr=0
-            #rainfall_daily=0
-            #rainfall_monthly=41.2
-            #rainfall_year=864.4
-            #rain_storm=0
-            #rain_storm_start_at=1970-01-01+01%3A00
-            #rain_storm_last=1.2
-            #rain_storm_last_start_at=2021-10-23+05%3A18
-            #rain_storm_last_end_at=2021-10-25+08%3A01
-
             self.rainbarrel.rain = iss_udp_data['rainfall_daily']
 
             if iss_udp_data['rain_rate_last'] is None:
@@ -363,6 +348,33 @@ class WllStation:
             # configured radio receiver state **(no unit)**
             packet['signal1'] = iss_data['rx_state']
 
+            #rain_rate_last=0
+            #rain_rate_hi=0
+            #rain_rate_hi_last_15_min=0
+            #rain_storm_last=1.2
+            
+            if iss_data['rain_storm'] != None:
+              packet['stormRain'] = iss_data['rain_storm'] * self.rainbarrel.bucketsize
+            if iss_data['rain_storm_last'] != None:
+              packet['stormRainlast'] = iss_data['rain_storm_last'] * self.rainbarrel.bucketsize
+            if iss_data['rainfall_last_15_min'] != None:
+              packet['rain15'] = iss_data['rainfall_last_15_min'] * self.rainbarrel.bucketsize
+            if iss_data['rainfall_last_60_min'] != None:
+              packet['rain60'] = iss_data['rainfall_last_60_min'] * self.rainbarrel.bucketsize
+            if iss_data['rainfall_last_24_hr'] != None:
+              packet['rain24'] = iss_data['rainfall_last_24_hr'] * self.rainbarrel.bucketsize
+            if iss_data['rain_rate_hi_last_15_min'] != None:
+              packet['rain_rate_hi_last_15_min'] = iss_data['rain_rate_hi_last_15_min'] * self.rainbarrel.bucketsize
+
+
+            packet['rain_storm_start_at'] = iss_data['rain_storm_start_at']
+            packet['rain_storm_last_start_at'] = iss_data['rain_storm_last_start_at']
+            packet['rain_storm_last_end_at'] = iss_data['rain_storm_last_end_at']
+
+            packet['dayRain'] = iss_data['rainfall_daily'] * self.rainbarrel.bucketsize
+            packet['monthRain'] = iss_data['rainfall_monthly'] * self.rainbarrel.bucketsize
+            packet['yearRain'] = iss_data['rainfall_year'] * self.rainbarrel.bucketsize
+
             self.rainbarrel.rain = iss_data['rainfall_daily']
             packet['rainRate'] = iss_data['rain_rate_last'] * self.rainbarrel.bucketsize
 
@@ -378,6 +390,7 @@ class WllStation:
             # most recent bar sensor reading with elevation adjustment **(inches)**
             packet['altimeter'] = lss_bar_data['bar_sea_level']
             packet['pressure'] = lss_bar_data['bar_absolute']
+            packet['barometer'] = lss_bar_data['bar_sea_level']
 
         if lss_temp_hum_data:
             # most recent valid inside temp **(F)**
@@ -615,7 +628,7 @@ def make_request_using_socket(url):
         http = requests.Session()
         http.mount("http://", adapter)
 
-        resp = http.get(url, timeout=3)
+        resp = http.get(url, timeout=10)
 
         json_data = json.loads(resp.text)
         if json_data["data"] is None:
