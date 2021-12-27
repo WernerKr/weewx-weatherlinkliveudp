@@ -195,6 +195,7 @@ class WllStation:
         self.leaf = None
         self.wind = None
         self.txid_rain = None
+        self.did = None
 
         self.davis_date_stamp = None
         self.system_date_stamp = None
@@ -206,12 +207,21 @@ class WllStation:
         self.davis_packet['rain'] = 0
         self.udp_countdown = 0
 
+        self.log = 0
+
     rainbarrel = RainBarrel()
+
+
+    def set_log(self, data):
+        if data:
+            self.log = int(data)
+            loginf('log is %s' % self.log)
 
     def set_poll_interval(self, data):
         self.poll_interval = data
         if self.poll_interval < 10:
             logerr('Unable to set Poll Interval (minimal 10 s.)')
+            self.poll_interval = 10
         loginf('HTTP polling interval is %s' % self.poll_interval)
 
     def set_txid(self, data):
@@ -357,8 +367,11 @@ class WllStation:
                 packet['rainRate'] = iss_udp_data['rain_rate_last'] * self.rainbarrel.bucketsize
 
             self.calculate_rain()
-
-            packet['rain'] = self.davis_packet['rain']
+            if self.davis_packet['rain'] >= 0:
+              packet['rain'] = self.davis_packet['rain']
+            else:
+              packet['rain'] = 0
+            #packet['rain'] = self.davis_packet['rain']
 
             if packet['rain'] > 0:
                 logdbg('UDP rain detect: {} buckets -> {} in'
@@ -367,6 +380,9 @@ class WllStation:
 
         # Get HTTP data
         if iss_data and iss_data.get('temp'):
+            if self.log == 4:
+               loginf("iss_data: %s" % iss_data)
+
             # most recent valid wind speed **(mph)**
             packet['windSpeed'] = iss_data['wind_speed_last']
 
@@ -460,7 +476,10 @@ class WllStation:
 
             self.calculate_rain()
 
-            packet['rain'] = self.davis_packet['rain']
+            if self.davis_packet['rain'] >= 0:
+              packet['rain'] = self.davis_packet['rain']
+            else:
+              packet['rain'] = 0
             if packet['rain'] > 0:
                 logdbg('HTTP rain detect: {} buckets -> {} in'
                        .format(packet['rain'] / self.rainbarrel.bucketsize,
@@ -619,8 +638,12 @@ class WllStation:
             packet['rainRate'] = rain_data['rain_rate_last'] * self.rainbarrel.bucketsize
 
             self.calculate_rain()
+            if self.davis_packet['rain'] >= 0:
+              packet['rain'] = self.davis_packet['rain']
+            else:
+              packet['rain'] = 0
+            #packet['rain'] = self.davis_packet['rain']
 
-            packet['rain'] = self.davis_packet['rain']
             if packet['rain'] > 0:
                 logdbg('HTTP rain detect: {} buckets -> {} in'
                        .format(packet['rain'] / self.rainbarrel.bucketsize,
@@ -636,6 +659,7 @@ class WllStation:
         return packet
 
     def calculate_rain(self):
+      #if self.rainbarrel.previous_date_stamp.timestamp() != None: 
         if self.davis_date_stamp.timestamp() > self.rainbarrel.previous_date_stamp.timestamp():
 
             # Reset Previous rain at Midnight
@@ -686,6 +710,8 @@ class WllStation:
             elif response.get('data'):
                 Req_data = response
                 self.udp_countdown = time.time() + Req_data['data']['duration']
+                if self.log == 1:
+                  loginf('UDP check at: {}'.format(weeutil.weeutil.timestamp_to_string(self.udp_countdown)))
                 logdbg('UDP check at: {}'.format(weeutil.weeutil.timestamp_to_string(self.udp_countdown)))
 
 
@@ -701,7 +727,11 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
 
         self.station.set_poll_interval(float(stn_dict.get('poll_interval', 10)))
 
+        self.station.set_log(stn_dict.get('log', 0))
+
         self.wll_ip = stn_dict.get('wll_ip', '192.168.0.121')
+        self.station.did = stn_dict.get('did', None)
+
 
         if self.wll_ip is None:
             logerr("No Weatherlink Live IP provided")
@@ -776,7 +806,12 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
                     logerr('No current conditions from wll. Check ip address.')
                 elif current_conditions.get('data'):
                     packet = self.station.decode_data_wll(current_conditions['data'])
+                    if packet == "":
+                       logerr('No current conditions from wll')
+                    if self.station.log == 2:
+                       loginf("packet: %s" % packet)
                     yield packet
+                    time.sleep(3)
 
             # Check if UDP is still on
             self.station.check_udp_broascast()
@@ -794,8 +829,11 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
                     else:
                         if self.test_midnight():
                             logdbg("Midnight, no UDP packet.")
-                        else:
+                        #elif UDP_data["did"] == '001D0A71011A':
+                        elif self.station.did == None or UDP_data["did"] == self.station.did:
                             packet = self.station.decode_data_wll(UDP_data)
+                            if self.station.log == 3:
+                               loginf("udp-packet: %s" % packet)
                             # Yield UDP
                             yield packet
                 # Catch json decoder faults
