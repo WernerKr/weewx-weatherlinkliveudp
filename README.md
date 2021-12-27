@@ -36,16 +36,19 @@ where x is the id.
     wll_ip = 1.2.3.4
     poll_interval = 10              # number of seconds [minimal 10 sec.]
     driver = user.weatherlinkliveudp
-     #txid_iss = 1		# if not set - as here,  the txid_id for a ISS or VUE is automatical detected 
+     #txid_iss = 1                  # if not set - as here,  the txid_id for a ISS or VUE is automatical detected 
      #extra_id = 2
      #extra_id2 = 0
      #extra_id3 = 0
      #extra_id4 = 0
                                     #one leaf_soil station is automatical detected
-     #leaf = 0		#only leaf station
-     #soil = 0		#only soil station
+     #leaf = 0                      #only leaf station
+     #soil = 0                      #only soil station
      #wind = 0
      #txid_rain = 0
+     #did = 001D0A61F5E8           #MAC-Adresse of the Live - is needed, if more then one DAVIS stations reports at port 22222
+     #log = 0                      #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=received data
+
 
 
 4) Restart WeeWX
