@@ -14,7 +14,7 @@ class weatherlinkliveudpInstaller(ExtensionInstaller):
             version='0.4.0',
             name='WeatherLinkLiveUDP',
             description='Periodically poll weather data from a WeatherLink Live device',
-            author="Bastiaan Meelberg",
+            author="Bastiaan Meelberg, Werner Krenn",
             config={
                 'WeatherLinkLiveUDP': {
                     'wll_ip': '1.2.3.4',
@@ -29,6 +29,8 @@ class weatherlinkliveudpInstaller(ExtensionInstaller):
                     '#soil': 0,
                     '#wind': 0,
                     '#txid_rain': 0,
+                    '#did': '001D0A61F5E8',
+                    'log': 0,
                 }
             },
             files=[('bin/user', ['bin/user/weatherlinkliveudp.py'])]
