@@ -47,7 +47,7 @@ where x is the id.
      #wind = 0
      #txid_rain = 0
      #did = 001D0A61F5E8           #MAC-Adresse of the Live - is needed, if more then one DAVIS stations reports at port 22222
-     #log = 0                      #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=received data
+     #log = 0                      #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=received data, 5=extra_data1..4
 
 
 

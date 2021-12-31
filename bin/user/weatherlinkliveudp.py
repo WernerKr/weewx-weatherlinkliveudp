@@ -18,6 +18,9 @@
 #
 # Bug Fixes September 2020
 # added leaf/soil October 2021
+# added extra Wind, extra Rain, extra2...4 December 2021
+# added own log, more loop packets (dewpoint_1 ...)
+# added did (MAC Adress from the Live) needed if more than one DAVIS stations reports on port 22222
 
 """
 
@@ -48,7 +51,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.4.0'
+DRIVER_VERSION = '0.4.1'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
@@ -80,7 +83,6 @@ weewx.units.obs_group_dict['rain_rate_hi_last_15_min'] = 'group_rain'
 weewx.units.obs_group_dict['rain_storm_start_at'] = 'group_time'
 weewx.units.obs_group_dict['rain_storm_last_start_at'] = 'group_time'
 weewx.units.obs_group_dict['rain_storm_last_end_at'] = 'group_time'
-
 
 MM2INCH = 1 / 25.4
 
@@ -331,13 +333,13 @@ class WllStation:
                 iss_udp_data = condition
 
             # If extra sensor are requested, try to find them
-            if self.extra1 and condition.get('txid') == self.extra1:
+            if self.extra1 and condition.get('txid') == self.extra1 and condition.get('temp'):
                 extra_data1 = condition
-            if self.extra2 and condition.get('txid') == self.extra2:
+            if self.extra2 and condition.get('txid') == self.extra2 and condition.get('temp'):
                 extra_data2 = condition
-            if self.extra3 and condition.get('txid') == self.extra3:
+            if self.extra3 and condition.get('txid') == self.extra3 and condition.get('temp'):
                 extra_data3 = condition
-            if self.extra4 and condition.get('txid') == self.extra4:
+            if self.extra4 and condition.get('txid') == self.extra4 and condition.get('temp'):
                 extra_data4 = condition
 
             if self.wind and condition.get('txid') == self.wind:
@@ -498,7 +500,33 @@ class WllStation:
             packet['inHumidity'] = lss_temp_hum_data['hum_in']
             # **(F)**
             packet['inDewpoint'] = lss_temp_hum_data['dew_point_in']
-            # packet['heatindex1'] = lss_temp_hum_data['heat_index_in']
+
+        if leaf_data:
+            # most recent valid leaf temp **(F)**
+            packet['leafTemp1'] = leaf_data['temp_1']
+            packet['leafTemp2'] = leaf_data['temp_2']
+            # most recent valid leaf 
+            packet['leafWet1'] = leaf_data['wet_leaf_1']
+            packet['leafWet2'] = leaf_data['wet_leaf_2']
+            packet['signal7'] = leaf_data['rx_state']
+            packet['txBatteryStatus7'] = leaf_data['trans_battery_flag']
+            #if leaf_data.get('trans_battery_flag'):
+            packet['batteryStatus7'] = leaf_data['trans_battery_flag']
+
+        if soil_data:
+            # most recent valid soil temp **(F)**
+            packet['soilTemp1'] = soil_data['temp_1']
+            packet['soilTemp2'] = soil_data['temp_2']
+            packet['soilTemp3'] = soil_data['temp_3']
+            packet['soilTemp4'] = soil_data['temp_4']
+            # most recent valid soilmoisture **(cb)**
+            packet['soilMoist1'] = soil_data['moist_soil_1']
+            packet['soilMoist2'] = soil_data['moist_soil_2']
+            packet['soilMoist3'] = soil_data['moist_soil_3']
+            packet['soilMoist4'] = soil_data['moist_soil_4']
+            packet['signal8'] = soil_data['rx_state']
+            #if soil_data.get('trans_battery_flag'):
+            packet['batteryStatus8'] = soil_data['trans_battery_flag']
 
         if leaf_soil_data:
             # most recent valid soil temp **(F)**
@@ -514,31 +542,13 @@ class WllStation:
             packet['leafWet1'] = leaf_soil_data['wet_leaf_1']
             packet['leafWet2'] = leaf_soil_data['wet_leaf_2']
             packet['signal6'] = leaf_soil_data['rx_state']
-
-        if leaf_data:
-            # most recent valid leaf temp **(F)**
-            packet['leafTemp1'] = leaf_data['temp_1']
-            packet['leafTemp2'] = leaf_data['temp_2']
-            # most recent valid leaf 
-            packet['leafWet1'] = leaf_data['wet_leaf_1']
-            packet['leafWet2'] = leaf_data['wet_leaf_2']
-            packet['signal7'] = leaf_data['rx_state']
-
-        if soil_data:
-            # most recent valid soil temp **(F)**
-            packet['soilTemp1'] = soil_data['temp_1']
-            packet['soilTemp2'] = soil_data['temp_2']
-            packet['soilTemp3'] = soil_data['temp_3']
-            packet['soilTemp4'] = soil_data['temp_4']
-            # most recent valid soilmoisture **(cb)**
-            packet['soilMoist1'] = soil_data['moist_soil_1']
-            packet['soilMoist2'] = soil_data['moist_soil_2']
-            packet['soilMoist3'] = soil_data['moist_soil_3']
-            packet['soilMoist4'] = soil_data['moist_soil_4']
-            packet['signal8'] = soil_data['rx_state']
-
+            #if leaf_soil_data.get('trans_battery_flag'):
+            packet['batteryStatus6'] = leaf_soil_data['trans_battery_flag']
 
         if extra_data1:
+            if self.log == 5:
+               loginf("extra_data1: %s" % extra_data1)
+
             if extra_data1.get('temp'):
                packet['extraTemp1'] = extra_data1['temp']
             if extra_data1.get('hum'):
@@ -549,10 +559,29 @@ class WllStation:
                packet['wetbulb_1'] = extra_data1['wet_bulb']
             if extra_data1.get('heat_index'):
                packet['heatindex_1'] = extra_data1['heat_index']
-            if extra_data1.get('rx_state'):
+
+            test = ''
+            if extra_data1.get('rx_state') :
                packet['signal2'] = extra_data1['rx_state']
+            else:
+               test = extra_data1.get('rx_state', None) 
+               if test != None:
+                 packet['signal2'] = test
+ 
+            test = ''
+            if extra_data1.get('trans_battery_flag') :
+               packet['batteryStatus2'] = extra_data1['trans_battery_flag']
+            else:
+               test = extra_data1.get('trans_battery_flag', None) 
+               if test != None:
+                 packet['batteryStatus2'] = test
+                 #loginf("batteryStatus2: %s" % test)
+
 
         if extra_data2:
+            if self.log == 5:
+               loginf("extra_data2: %s" % extra_data2)
+
             if extra_data2.get('temp'):
                packet['extraTemp2'] = extra_data2['temp']
             if extra_data2.get('hum'):
@@ -563,10 +592,28 @@ class WllStation:
                packet['wetbulb_2'] = extra_data2['wet_bulb']
             if extra_data2.get('heat_index'):
                packet['heatindex_2'] = extra_data2['heat_index']
+
+            test = ''            
             if extra_data2.get('rx_state'):
                packet['signal3'] = extra_data2['rx_state']
+            else:
+               test = extra_data2.get('rx_state', None) 
+               if test != None:
+                 packet['signal3'] = test
+
+            test = '' 
+            if extra_data2.get('trans_battery_flag'):
+               packet['batteryStatus3'] = extra_data2['trans_battery_flag']
+            else:
+               test = extra_data2.get('trans_battery_flag', None) 
+               if test != None:
+                 packet['batteryStatus3'] = test
+
 
         if extra_data3:
+            if self.log == 5:
+               loginf("extra_data3: %s" % extra_data3)
+
             if extra_data3.get('temp'):
                packet['extraTemp3'] = extra_data3['temp']
             if extra_data3.get('hum'):
@@ -577,10 +624,27 @@ class WllStation:
                packet['wetbulb_3'] = extra_data3['wet_bulb']
             if extra_data3.get('heat_index'):
                packet['heatindex_3'] = extra_data3['heat_index']
+
+            test = ''  
             if extra_data3.get('rx_state'):
                packet['signal4'] = extra_data3['rx_state']
+            else:
+               test = extra_data3.get('rx_state', None) 
+               if test != None:
+                 packet['signal4'] = test
+
+            test = ''  
+            if extra_data3.get('trans_battery_flag'):
+             packet['batteryStatus4'] = extra_data3['trans_battery_flag']
+            else:
+               test = extra_data3.get('trans_battery_flag', None) 
+               if test != None:
+                 packet['batteryStatus4'] = test
 
         if extra_data4:
+            if self.log == 5:
+               loginf("extra_data4: %s" % extra_data4)
+
             if extra_data4.get('temp'):
                packet['extraTemp4'] = extra_data4['temp']
             if extra_data4.get('hum'):
@@ -591,8 +655,22 @@ class WllStation:
                packet['wetbulb_4'] = extra_data4['wet_bulb']
             if extra_data4.get('heat_index'):
                packet['heatindex_4'] = extra_data4['heat_index']
+
+            test = ''  
             if extra_data4.get('rx_state'):
                packet['signal5'] = extra_data4['rx_state']
+            else:
+               test = extra_data4.get('rx_state', None) 
+               if test != None:
+                 packet['signal5'] = test
+
+            test = ''  
+            if extra_data4.get('trans_battery_flag'):
+             packet['batteryStatus5'] = extra_data4['trans_battery_flag']
+            else:
+               test = extra_data4.get('trans_battery_flag', None) 
+               if test != None:
+                 packet['batteryStatus5'] = test
 
         if wind_data:
             packet['windSpeed'] = wind_data['wind_speed_last']
@@ -606,7 +684,6 @@ class WllStation:
             packet['windGustSpeed10'] = wind_data["wind_speed_hi_last_10_min"]
             packet['windGustDir10'] = wind_data["wind_dir_at_hi_speed_last_10_min"]
             packet['windBatteryStatus'] = wind_data['trans_battery_flag']
-
 
             if wind_data.get('rx_state'):
                packet['signalw'] = wind_data['rx_state']
@@ -808,10 +885,10 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
                     packet = self.station.decode_data_wll(current_conditions['data'])
                     if packet == "":
                        logerr('No current conditions from wll')
-                    if self.station.log == 2:
+                    if self.station.log == 2 or self.station.log == 3:
                        loginf("packet: %s" % packet)
                     yield packet
-                    time.sleep(3)
+                    #time.sleep(3)
 
             # Check if UDP is still on
             self.station.check_udp_broascast()
@@ -829,7 +906,6 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
                     else:
                         if self.test_midnight():
                             logdbg("Midnight, no UDP packet.")
-                        #elif UDP_data["did"] == '001D0A71011A':
                         elif self.station.did == None or UDP_data["did"] == self.station.did:
                             packet = self.station.decode_data_wll(UDP_data)
                             if self.station.log == 3:
