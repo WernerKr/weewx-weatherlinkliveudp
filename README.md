@@ -73,6 +73,8 @@ signal1_2
 
 
 # If you would like to expand your database schema with this data:
+
+# The WLL can get d
 [expand_database]
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outTemp_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outHumidity_2 --type=REAL
