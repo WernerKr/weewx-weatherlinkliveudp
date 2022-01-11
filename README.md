@@ -30,6 +30,67 @@ If you have a separate wind transmitter, set up according to Davis Instruments r
 Where `wll_ip = 1.2.3.4` is the ip address of the WLL.
 For logging extra senors just add the transition id to the stanza by adding e.g. `extra_id = x`, 
 where x is the id. 
+Supports now a second ISS or VUE (txid_iss2 = x) with this values:
+
+outTemp_2
+outHumidity_2
+dewpoint2
+heatindex2
+windchill2
+THSW_2
+THW_2
+outWetbulb_2
+radiation_2
+UV_2
+windSpeed_2
+windDir_2
+windGust_2
+windGustDir_2
+windSpeed1_2
+windDir1_2
+windSpeed10_2
+windDir10_2
+windGustSpeed10_2
+windGustDir10_2
+rain_2
+rainRate_2
+stormRain_2
+stormRainlast_2
+rain15_2
+rain60_2
+rain24_2
+dayRain_2
+monthRain_2
+yearRain_2
+rain_rate_hi_last_15_min_2
+rainfall_last_24_hr_2
+rain_storm_start_at_2
+rain_storm_last_start_at_2
+rain_storm_last_end_at_2
+txBatteryStatus_2
+signal1_2
+
+
+If you would like to expand your database schema with this data:
+
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outTemp_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outHumidity_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=dewpoint2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=heatindex2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=windchill2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=THSW_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=THW_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outWetbulb_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=radiation_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=UV_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=windSpeed_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=windDir_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=windGust_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=windGustDir_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rain_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rainRate_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=xBatteryStatus_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rsignal1_2 --type=REAL
 ```
 # The WLL can get dat from up to eight transmitters. If multiple transmitters e.g. extra ISS for wind, extra temp sensor, requires the lsid_iss
 [WeatherLinkLiveUDP]
@@ -38,14 +99,15 @@ where x is the id.
     driver = user.weatherlinkliveudp
      #txid_iss = 1                  # if not set - as here,  the txid_id for a ISS or VUE is automatical detected 
      #extra_id = 2
-     #extra_id2 = 0
-     #extra_id3 = 0
-     #extra_id4 = 0
+     #extra_id2 = None
+     #extra_id3 = None
+     #extra_id4 = None
                                     #one leaf_soil station is automatical detected
-     #leaf = 0                      #only leaf station
-     #soil = 0                      #only soil station
-     #wind = 0
-     #txid_rain = 0
+     #leaf = None                   #only leaf station
+     #soil = None                   #only soil station
+     #wind = None
+     #txid_rain = None
+     #txid_iss2 = None
      #did = 001D0A61F5E8           #MAC-Adresse of the Live - is needed, if more then one DAVIS stations reports at port 22222
      #log = 0                      #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=received data, 5=extra_data1..4
 

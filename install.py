@@ -1,6 +1,6 @@
 # Installer file for WeatherLink Live (WeatherLinkLiveUDP) driver for WeeWX
 # Copyright 2020 Bastiaan Meelberg
-# Modified 2021 Werner Krenn (leaf/soil/Extra2..4,Wind,Rain,Batlevel,Signal)
+# Modified 2021/2022 Werner Krenn (leaf/soil/Extra2..4,ISS2,Wind,Rain,Batlevel,Signal)
 # Distributed under the terms of the GNU Public License (GPLv3)
 
 from setup import ExtensionInstaller
@@ -11,7 +11,7 @@ def loader():
 class weatherlinkliveudpInstaller(ExtensionInstaller):
     def __init__(self):
         super(weatherlinkliveudpInstaller, self).__init__(
-            version='0.4.1',
+            version='0.5.0',
             name='WeatherLinkLiveUDP',
             description='Periodically poll weather data from a WeatherLink Live device',
             author="Bastiaan Meelberg, Werner Krenn",
@@ -29,6 +29,7 @@ class weatherlinkliveudpInstaller(ExtensionInstaller):
                     '#soil': 0,
                     '#wind': 0,
                     '#txid_rain': 0,
+                    '#txid_iss2': 0,
                     '#did': '001D0A61F5E8',
                     'log': 0,
                 }
