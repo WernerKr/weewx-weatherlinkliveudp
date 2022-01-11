@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
 # Copyright 2020 Bastiaan Meelberg
-# Modified 2021 Werner Krenn (Leaf/Soil/...)
-# Added Extra2..Extra4, Wind
+# Modified 2021/2022 Werner Krenn (Leaf/Soil/...)
+# Added Extra2..Extra4, Wind, Rain, ISS2
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -19,6 +19,7 @@
 # Bug Fixes September 2020
 # added leaf/soil October 2021
 # added extra Wind, extra Rain, extra2...4 December 2021
+# added ISS2 - corrected Main Rain 1 Januar 2022
 # added own log, more loop packets (dewpoint_1 ...)
 # added did (MAC Adress from the Live) needed if more than one DAVIS stations reports on port 22222
 
@@ -51,7 +52,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.4.1'
+DRIVER_VERSION = '0.5.0'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
@@ -76,13 +77,49 @@ weewx.units.obs_group_dict['heatindex_1'] = 'group_temperature'
 weewx.units.obs_group_dict['heatindex_2'] = 'group_temperature'
 weewx.units.obs_group_dict['heatindex_3'] = 'group_temperature'
 weewx.units.obs_group_dict['heatindex_4'] = 'group_temperature'
-
 weewx.units.obs_group_dict['rain_rate_hi_last_15_min'] = 'group_rain'
 #weewx.units.obs_group_dict['rainfall_last_24_hr'] = 'group_rain'
-#weewx.units.obs_group_dict['rain_storm'] = 'group_rain'
 weewx.units.obs_group_dict['rain_storm_start_at'] = 'group_time'
 weewx.units.obs_group_dict['rain_storm_last_start_at'] = 'group_time'
 weewx.units.obs_group_dict['rain_storm_last_end_at'] = 'group_time'
+
+weewx.units.obs_group_dict['windSpeed_2'] = 'group_speed2'
+weewx.units.obs_group_dict['windDir_2'] = 'group_direction'
+weewx.units.obs_group_dict['windGust_2'] = 'group_speed2'
+weewx.units.obs_group_dict['windGustDir_2'] = 'group_direction'
+weewx.units.obs_group_dict['windSpeed1_2'] = 'group_speed2'
+weewx.units.obs_group_dict['windDir1_2'] = 'group_direction'
+weewx.units.obs_group_dict['windSpeed10_2'] = 'group_speed2'
+weewx.units.obs_group_dict['windDir10_2'] = 'group_direction'
+weewx.units.obs_group_dict['windGustSpeed10_2'] = 'group_speed2'
+weewx.units.obs_group_dict['windGustDir10_2'] = 'group_direction'
+weewx.units.obs_group_dict['outTemp_2'] = 'group_temperature'
+weewx.units.obs_group_dict['outHumidity_2'] =  'group_percent'
+weewx.units.obs_group_dict['dewpoint2'] = 'group_temperature'
+weewx.units.obs_group_dict['heatindex2'] = 'group_temperature'
+weewx.units.obs_group_dict['windchill2'] = 'group_temperature'
+weewx.units.obs_group_dict['THSW_2'] = 'group_temperature'
+weewx.units.obs_group_dict['THW_2'] = 'group_temperature'
+weewx.units.obs_group_dict['outWetbulb_2'] = 'group_temperature'
+weewx.units.obs_group_dict['radiation_2'] = 'group_radiation'
+weewx.units.obs_group_dict['UV_2'] = 'group_uv'
+weewx.units.obs_group_dict['txBatteryStatus_2'] = 'group_count'
+weewx.units.obs_group_dict['signal1_2'] = 'group_count'
+weewx.units.obs_group_dict['rain_2'] = 'group_rain'
+weewx.units.obs_group_dict['rainRate_2'] = 'group_rain'
+weewx.units.obs_group_dict['stormRain_2'] = 'group_rain'
+weewx.units.obs_group_dict['stormRainlast_2'] = 'group_rain'
+weewx.units.obs_group_dict['rain15_2'] = 'group_rain'
+weewx.units.obs_group_dict['rain60_2'] = 'group_rain'
+weewx.units.obs_group_dict['rain24_2'] = 'group_rain'
+weewx.units.obs_group_dict['dayRain_2'] = 'group_rain'
+weewx.units.obs_group_dict['monthRain_2'] = 'group_rain'
+weewx.units.obs_group_dict['yearRain_2'] = 'group_rain'
+weewx.units.obs_group_dict['rain_rate_hi_last_15_min_2'] = 'group_rain'
+weewx.units.obs_group_dict['rainfall_last_24_hr_2'] = 'group_rain'
+weewx.units.obs_group_dict['rain_storm_start_at_2'] = 'group_time'
+weewx.units.obs_group_dict['rain_storm_last_start_at_2'] = 'group_time'
+weewx.units.obs_group_dict['rain_storm_last_end_at_2'] = 'group_time'
 
 MM2INCH = 1 / 25.4
 
@@ -137,6 +174,7 @@ def loader(config_dict, engine):
 class RainBarrel:
     def __init__(self):
         self.bucketsize = 0.0
+        self.rain_previous_period2 = 0
         self.rain_previous_period = 0
         self.previous_day = None
 
@@ -198,7 +236,8 @@ class WllStation:
         self.wind = None
         self.txid_rain = None
         self.did = None
-
+        self.txid_iss2 = None
+        
         self.davis_date_stamp = None
         self.system_date_stamp = None
 
@@ -210,6 +249,7 @@ class WllStation:
         self.udp_countdown = 0
 
         self.log = 0
+        #self.rainbarrel = 0
 
     rainbarrel = RainBarrel()
 
@@ -269,6 +309,11 @@ class WllStation:
             self.soil = int(data)
             loginf('Soil sensor is using txid: {}'.format(self.soil))
 
+    def set_txid2(self, data):
+        if data:
+            self.txid_iss2 = int(data)
+            loginf('txid of 2. ISS/VUE is {}'.format(self.txid_iss2))
+
 
     def decode_data_wll(self, data):
 
@@ -285,6 +330,7 @@ class WllStation:
         soil_data = None
         wind_data = None
         rain_data = None
+        iss2_data = None
 
         self.current_davis_data = data
 
@@ -342,11 +388,14 @@ class WllStation:
             if self.extra4 and condition.get('txid') == self.extra4 and condition.get('temp'):
                 extra_data4 = condition
 
-            if self.wind and condition.get('txid') == self.wind:
-                extra_wind = condition
+            if self.wind and condition.get('txid') == self.wind and condition.get('wind_speed_last'):
+                wind_data = condition
 
-            if self.txid_rain and condition.get('txid') == self.txid_rain:
-                extra_rain = condition
+            if self.txid_rain and condition.get('txid') == self.txid_rain and condition.get('rainfall_daily'):
+                rain_data = condition
+
+            if self.txid_iss2 and condition.get('txid') == self.txid_iss2:
+                iss2_data = condition
 
 
         # Get UDP data
@@ -673,6 +722,9 @@ class WllStation:
                  packet['batteryStatus5'] = test
 
         if wind_data:
+            if self.log == 6:
+               loginf("wind_data: %s" % wind_data)
+
             packet['windSpeed'] = wind_data['wind_speed_last']
             packet['windDir'] = wind_data['wind_dir_last']
             packet['windGust'] = wind_data['wind_speed_hi_last_2_min']
@@ -689,6 +741,9 @@ class WllStation:
                packet['signalw'] = wind_data['rx_state']
 
         if rain_data:
+            if self.log == 6:
+               loginf("rain_data: %s" % rain_data)
+
             if rain_data['rain_storm'] != None:
               packet['stormRain'] = rain_data['rain_storm'] * self.rainbarrel.bucketsize
             if rain_data['rain_storm_last'] != None:
@@ -730,6 +785,83 @@ class WllStation:
 
             if rain_data.get('rx_state'):
                packet['signalr'] = rain_data['rx_state']
+
+        if iss2_data and iss2_data.get('temp'):
+            if self.log == 7:
+               loginf("iss2_data: %s" % iss2_data)
+
+            packet['windSpeed_2'] = iss2_data['wind_speed_last']
+            packet['windDir_2'] = iss2_data['wind_dir_last']
+            packet['windGust_2'] = iss2_data['wind_speed_hi_last_2_min']
+            packet['windGustDir_2'] = iss2_data["wind_dir_at_hi_speed_last_2_min"]
+            packet['windSpeed1_2'] = iss2_data["wind_speed_avg_last_1_min"]
+            packet['windDir1_2'] = iss2_data["wind_dir_scalar_avg_last_1_min"]
+            packet['windSpeed10_2'] = iss2_data["wind_speed_avg_last_10_min"]
+            packet['windDir10_2'] = iss2_data["wind_dir_scalar_avg_last_10_min"]
+            packet['windGustSpeed10_2'] = iss2_data["wind_speed_hi_last_10_min"]
+            packet['windGustDir10_2'] = iss2_data["wind_dir_at_hi_speed_last_10_min"]
+            packet['outTemp_2'] = iss2_data['temp']
+            packet['outHumidity_2'] = iss2_data['hum']
+            packet['dewpoint2'] = iss2_data['dew_point']
+            packet['heatindex2'] = iss2_data['heat_index']
+            packet['windchill2'] = iss2_data['wind_chill']
+            packet['THSW_2'] = iss2_data['thsw_index']
+            packet['THW_2'] = iss2_data['thw_index']
+            packet['outWetbulb_2'] = iss2_data['wet_bulb']
+            packet['radiation_2'] = iss2_data['solar_rad']
+            packet['UV_2'] = iss2_data['uv_index']
+            packet['txBatteryStatus_2'] = iss2_data['trans_battery_flag']
+            packet['signal1_2'] = iss2_data['rx_state']
+
+            self.rainbarrel.bucketsize2 = 0.01
+            type = iss2_data['rain_size']
+            if 1 <= type <= 4:
+               if type == 1:
+                  self.rainbarrel.bucketsize2 = 0.01
+               elif type == 2:
+                  self.rainbarrel.bucketsize2 = 0.2 * MM2INCH
+               elif type == 3:
+                  self.rainbarrel.bucketsize2 = 0.1 * MM2INCH
+               elif type == 4:
+                  self.rainbarrel.bucketsize2 = 0.001
+
+            if iss2_data['rain_storm'] != None:
+              packet['stormRain_2'] = iss2_data['rain_storm'] * self.rainbarrel.bucketsize2
+            if iss2_data['rain_storm_last'] != None:
+              packet['stormRainlast_2'] = iss2_data['rain_storm_last'] * self.rainbarrel.bucketsize2
+            if iss2_data['rainfall_last_15_min'] != None:
+              packet['rain15_2'] = iss2_data['rainfall_last_15_min'] * self.rainbarrel.bucketsize2
+            if iss2_data['rainfall_last_60_min'] != None:
+              packet['rain60_2'] = iss2_data['rainfall_last_60_min'] * self.rainbarrel.bucketsize2
+            if iss2_data['rainfall_last_24_hr'] != None:
+              packet['rain24_2'] = iss2_data['rainfall_last_24_hr'] * self.rainbarrel.bucketsize2
+            if iss2_data['rain_rate_hi_last_15_min'] != None:
+              packet['rain_rate_hi_last_15_min_2'] = iss2_data['rain_rate_hi_last_15_min'] * self.rainbarrel.bucketsize2
+
+
+            packet['rain_storm_start_at_2'] = iss2_data['rain_storm_start_at']
+            packet['rain_storm_last_start_at_2'] = iss2_data['rain_storm_last_start_at']
+            packet['rain_storm_last_end_at_2'] = iss2_data['rain_storm_last_end_at']
+
+            packet['dayRain_2'] = iss2_data['rainfall_daily'] * self.rainbarrel.bucketsize2
+            packet['monthRain_2'] = iss2_data['rainfall_monthly'] * self.rainbarrel.bucketsize2
+            packet['yearRain_2'] = iss2_data['rainfall_year'] * self.rainbarrel.bucketsize2
+
+            self.rainbarrel.rain2 = iss2_data['rainfall_daily']
+            packet['rainRate_2'] = iss2_data['rain_rate_last'] * self.rainbarrel.bucketsize2
+
+            rain_now = self.rainbarrel.rain2 - self.rainbarrel.rain_previous_period2
+            if rain_now > 0:
+               self.rainbarrel.rain_previous_period2 = self.rainbarrel.rain2
+               # Empty Barrel
+               #self.rainbarrel.empty_rain_barrel()
+            self.rainbarrel.rain2 = 0
+            rain_2v = rain_now * self.rainbarrel.bucketsize2
+
+            if rain_2v >= 0:
+              packet['rain_2'] = rain_2v
+            else:
+              packet['rain_2'] = 0
 
 
 
@@ -813,7 +945,7 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
         if self.wll_ip is None:
             logerr("No Weatherlink Live IP provided")
 
-        txid_iss = stn_dict.get('txid_iss')
+        txid_iss = stn_dict.get('txid_iss', None)
 
         self.station.set_extra1(stn_dict.get('extra_id'))
         self.station.set_extra2(stn_dict.get('extra_id2'))
@@ -823,6 +955,7 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
         self.station.set_leaf(stn_dict.get('leaf'))
         self.station.set_wind(stn_dict.get('wind'))
         self.station.set_rain(stn_dict.get('txid_rain'))
+        self.station.set_txid2(stn_dict.get('txid_iss2'))
         
         # Tells the WW to begin broadcasting UDP data and continue for 1 hour seconds
         self.station.real_rime_url = 'http://{}:80/v1/real_time?duration=3600'.format(self.wll_ip)
@@ -836,13 +969,23 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
         elif response.get('data'):
 
             data = response['data']
-
-            main_condition = data['conditions'][0]
 	
             if txid_iss is None:
                self.station.set_txid(data['conditions'][0]['txid'])
             else:
                self.station.set_txid(txid_iss) 
+
+
+
+            #main_condition = data['conditions'][0]
+            if self.station.txid_iss is None and self.station.txid_rain is None:
+               main_condition = data['conditions'][0]
+            else:
+               for condition in data['conditions']:
+                  if self.station.txid_rain != None and condition.get('txid') == self.station.txid_rain:
+                     main_condition = condition
+                  elif self.station.txid_rain is None and condition.get('txid') == self.station.txid_iss: 
+                     main_condition = condition
 
             # Set Bucket Size
             self.station.rainbarrel.set_up_bucket_size(main_condition)
