@@ -30,7 +30,8 @@ If you have a separate wind transmitter, set up according to Davis Instruments r
 Where `wll_ip = 1.2.3.4` is the ip address of the WLL.
 For logging extra senors just add the transition id to the stanza by adding e.g. `extra_id = x`, 
 where x is the id. 
-Supports now a second ISS or VUE (txid_iss2 = x) with this values:
+
+# Supports now a second ISS or VUE (txid_iss2 = x) with this values:
 
 outTemp_2
 outHumidity_2
@@ -71,7 +72,7 @@ txBatteryStatus_2
 signal1_2
 
 
-If you would like to expand your database schema with this data:
+# If you would like to expand your database schema with this data:
 
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outTemp_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outHumidity_2 --type=REAL
