@@ -127,7 +127,7 @@ Note: The driver requires the Python `requests` library. To install it:
 sudo apt-get update 
 sudo apt-get install python-requests
 ```
-or us pip
+or use pip
 ```
 pip install requests
 ```
