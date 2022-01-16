@@ -111,8 +111,7 @@ sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rsignal
      #txid_rain = None
      #txid_iss2 = None
      #did = 001D0A61F5E8           #MAC-Adresse of the Live - is needed, if more then one DAVIS stations reports at port 22222
-     #log = 0                      #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=received data, 5=extra_data1..4
-
+     log = 0                       #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=iss, 5=extra_data1..4, 6=Wind,Rain, 7=ISS2, 8=iss_udp, 9=all reception
 
 
 4) Restart WeeWX
