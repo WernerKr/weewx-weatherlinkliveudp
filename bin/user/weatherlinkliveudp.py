@@ -52,7 +52,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.5.0'
+DRIVER_VERSION = '0.5.1'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
@@ -237,6 +237,7 @@ class WllStation:
         self.txid_rain = None
         self.did = None
         self.txid_iss2 = None
+        self.leafsoil = None
         
         self.davis_date_stamp = None
         self.system_date_stamp = None
@@ -274,40 +275,40 @@ class WllStation:
     def set_extra1(self, data):
         if data:
             self.extra1 = int(data)
-            loginf('Extra sensor is using txid: {}'.format(self.extra1))
+            loginf('Extra1 station is using txid: {}'.format(self.extra1))
     def set_extra2(self, data):
         if data:
             self.extra2 = int(data)
-            loginf('Extra sensor2 is using txid: {}'.format(self.extra2))
+            loginf('Extra2 station is using txid: {}'.format(self.extra2))
     def set_extra3(self, data):
         if data:
             self.extra3 = int(data)
-            loginf('Extra sensor3 is using txid: {}'.format(self.extra3))
+            loginf('Extra3 station is using txid: {}'.format(self.extra3))
     def set_extra4(self, data):
         if data:
             self.extra4 = int(data)
-            loginf('Extra sensor4 is using txid: {}'.format(self.extra4))
+            loginf('Extra4 station is using txid: {}'.format(self.extra4))
 
     def set_wind(self, data):
         if data:
             self.wind = int(data)
-            loginf('Wind sensor is using txid: {}'.format(self.wind))
+            loginf('Wind station is using txid: {}'.format(self.wind))
 
     def set_rain(self, data):
         if data:
             self.txid_rain = int(data)
-            loginf('Rain sensor is using txid: {}'.format(self.txid_rain))
+            loginf('Rain station is using txid: {}'.format(self.txid_rain))
 
 
     def set_leaf(self, data):
         if data:
             self.leaf = int(data)
-            loginf('Leaf sensor is using txid: {}'.format(self.leaf))
+            loginf('Leaf station is using txid: {}'.format(self.leaf))
 
     def set_soil(self, data):
         if data:
             self.soil = int(data)
-            loginf('Soil sensor is using txid: {}'.format(self.soil))
+            loginf('Soil station is using txid: {}'.format(self.soil))
 
     def set_txid2(self, data):
         if data:
@@ -333,6 +334,9 @@ class WllStation:
         iss2_data = None
 
         self.current_davis_data = data
+
+        if self.log == 9:
+          loginf("rec_data: %s" % data)
 
         timestamp = data['ts']
         self.davis_date_stamp = datetime.datetime.fromtimestamp(timestamp)
@@ -374,8 +378,20 @@ class WllStation:
             if condition.get('data_structure_type') == 4:
                 lss_temp_hum_data = condition
 
+            if self.wind and condition.get('txid') == self.wind and condition.get('wind_speed_avg_last_10_min'):
+                wind_data = condition
+
+            if self.txid_rain and condition.get('txid') == self.txid_rain and condition.get('rainfall_last_15_min'):
+                rain_data = condition
+
+#            if self.wind and condition.get('txid') == self.wind and condition.get('data_structure_type') == 1 and wind_data is None: 
+#                iss_udp_data = condition
+#            elif self.wind == None and condition.get('txid') == self.txid_iss and condition.get(
+#                    'data_structure_type') == 1 and not condition.get('temp'): #and condition.get('wind_speed_last'):
+#                iss_udp_data = condition
+
             if condition.get('txid') == self.txid_iss and condition.get(
-                    'data_structure_type') == 1 and not condition.get('temp'):
+                    'data_structure_type') == 1 and not condition.get('temp'): #and condition.get('wind_speed_last'):
                 iss_udp_data = condition
 
             # If extra sensor are requested, try to find them
@@ -388,11 +404,6 @@ class WllStation:
             if self.extra4 and condition.get('txid') == self.extra4 and condition.get('temp'):
                 extra_data4 = condition
 
-            if self.wind and condition.get('txid') == self.wind and condition.get('wind_speed_last'):
-                wind_data = condition
-
-            if self.txid_rain and condition.get('txid') == self.txid_rain and condition.get('rainfall_daily'):
-                rain_data = condition
 
             if self.txid_iss2 and condition.get('txid') == self.txid_iss2:
                 iss2_data = condition
@@ -400,6 +411,8 @@ class WllStation:
 
         # Get UDP data
         if iss_udp_data:
+            if self.log == 8:
+               loginf("iss_udp_data: %s" % iss_udp_data)
 
             # most recent valid wind speed **(mph)**
             packet['windSpeed'] = iss_udp_data['wind_speed_last']
@@ -724,21 +737,47 @@ class WllStation:
         if wind_data:
             if self.log == 6:
                loginf("wind_data: %s" % wind_data)
+            if wind_data.get('wind_speed_last'):
+              packet['windSpeed'] = wind_data['wind_speed_last']
+            if wind_data.get('wind_dir_last'):
+              packet['windDir'] = wind_data['wind_dir_last']
+            if wind_data.get('wind_speed_hi_last_2_min'):
+              packet['windGust'] = wind_data['wind_speed_hi_last_2_min']
+            if wind_data.get('wind_dir_at_hi_speed_last_2_min'):
+              packet['windGustDir'] = wind_data["wind_dir_at_hi_speed_last_2_min"]
+            if wind_data.get('wind_speed_avg_last_1_min'):
+              packet['windSpeed1'] = wind_data["wind_speed_avg_last_1_min"]
+            if wind_data.get('wind_dir_scalar_avg_last_1_min'):
+              packet['windDir1'] = wind_data["wind_dir_scalar_avg_last_1_min"]
+            if wind_data.get('wind_speed_avg_last_10_min'):
+              packet['windSpeed10'] = wind_data["wind_speed_avg_last_10_min"]
+            if wind_data.get('wind_dir_scalar_avg_last_10_min'):
+              packet['windDir10'] = wind_data["wind_dir_scalar_avg_last_10_min"]
+            if wind_data.get('wind_speed_hi_last_10_min'):
+              packet['windGustSpeed10'] = wind_data["wind_speed_hi_last_10_min"]
+            if wind_data.get('wind_dir_at_hi_speed_last_10_min'):
+              packet['windGustDir10'] = wind_data["wind_dir_at_hi_speed_last_10_min"]
 
-            packet['windSpeed'] = wind_data['wind_speed_last']
-            packet['windDir'] = wind_data['wind_dir_last']
-            packet['windGust'] = wind_data['wind_speed_hi_last_2_min']
-            packet['windGustDir'] = wind_data["wind_dir_at_hi_speed_last_2_min"]
-            packet['windSpeed1'] = wind_data["wind_speed_avg_last_1_min"]
-            packet['windDir1'] = wind_data["wind_dir_scalar_avg_last_1_min"]
-            packet['windSpeed10'] = wind_data["wind_speed_avg_last_10_min"]
-            packet['windDir10'] = wind_data["wind_dir_scalar_avg_last_10_min"]
-            packet['windGustSpeed10'] = wind_data["wind_speed_hi_last_10_min"]
-            packet['windGustDir10'] = wind_data["wind_dir_at_hi_speed_last_10_min"]
-            packet['windBatteryStatus'] = wind_data['trans_battery_flag']
-
+            test = ''
             if wind_data.get('rx_state'):
                packet['signalw'] = wind_data['rx_state']
+            else:
+               test = wind_data.get('rx_state', None) 
+               if test != None:
+                 packet['signalw'] = test
+
+            test = ''  
+            if wind_data.get('trans_battery_flag'):
+             packet['windBatteryStatus'] = wind_data['trans_battery_flag']
+            else:
+               test = wind_data.get('trans_battery_flag', None) 
+               if test != None:
+                 packet['windBatteryStatus'] = test
+
+
+            #packet['windBatteryStatus'] = wind_data['trans_battery_flag']
+            #if wind_data.get('rx_state'):
+            #   packet['signalw'] = wind_data['rx_state']
 
         if rain_data:
             if self.log == 6:
@@ -757,17 +796,23 @@ class WllStation:
             if rain_data['rain_rate_hi_last_15_min'] != None:
               packet['rain_rate_hi_last_15_min'] = rain_data['rain_rate_hi_last_15_min'] * self.rainbarrel.bucketsize
 
+            if rain_data['rain_storm_start_at'] != None:
+              packet['rain_storm_start_at'] = rain_data['rain_storm_start_at']
+            if rain_data['rain_storm_last_start_at'] != None:
+              packet['rain_storm_last_start_at'] = rain_data['rain_storm_last_start_at']
+            if rain_data['rain_storm_last_end_at'] != None:
+              packet['rain_storm_last_end_at'] = rain_data['rain_storm_last_end_at']
 
-            packet['rain_storm_start_at'] = rain_data['rain_storm_start_at']
-            packet['rain_storm_last_start_at'] = rain_data['rain_storm_last_start_at']
-            packet['rain_storm_last_end_at'] = rain_data['rain_storm_last_end_at']
-
-            packet['dayRain'] = rain_data['rainfall_daily'] * self.rainbarrel.bucketsize
-            packet['monthRain'] = rain_data['rainfall_monthly'] * self.rainbarrel.bucketsize
-            packet['yearRain'] = rain_data['rainfall_year'] * self.rainbarrel.bucketsize
+            if rain_data['rainfall_daily'] != None:
+              packet['dayRain'] = rain_data['rainfall_daily'] * self.rainbarrel.bucketsize
+            if rain_data['rainfall_monthly'] != None:
+              packet['monthRain'] = rain_data['rainfall_monthly'] * self.rainbarrel.bucketsize
+            if rain_data['rainfall_year'] != None:
+              packet['yearRain'] = rain_data['rainfall_year'] * self.rainbarrel.bucketsize
 
             self.rainbarrel.rain = rain_data['rainfall_daily']
-            packet['rainRate'] = rain_data['rain_rate_last'] * self.rainbarrel.bucketsize
+            if rain_data['rain_rate_last'] != None:
+              packet['rainRate'] = rain_data['rain_rate_last'] * self.rainbarrel.bucketsize
 
             self.calculate_rain()
             if self.davis_packet['rain'] >= 0:
@@ -781,10 +826,26 @@ class WllStation:
                        .format(packet['rain'] / self.rainbarrel.bucketsize,
                                packet['rain']))
 
-            packet['rainBatteryStatus'] = rain_data['trans_battery_flag']
-
+            test = ''  
             if rain_data.get('rx_state'):
                packet['signalr'] = rain_data['rx_state']
+            else:
+               test = rain_data.get('rx_state', None) 
+               if test != None:
+                 packet['signalr'] = test
+
+            test = ''  
+            if rain_data.get('trans_battery_flag'):
+             packet['rainBatteryStatus'] = rain_data['trans_battery_flag']
+            else:
+               test = rain_data.get('trans_battery_flag', None) 
+               if test != None:
+                 packet['rainBatteryStatus'] = test
+
+            #packet['rainBatteryStatus'] = rain_data['trans_battery_flag']
+
+            #if rain_data.get('rx_state'):
+            #   packet['signalr'] = rain_data['rx_state']
 
         if iss2_data and iss2_data.get('temp'):
             if self.log == 7:
@@ -975,7 +1036,11 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
             else:
                self.station.set_txid(txid_iss) 
 
-
+            if self.station.leaf == None and self.station.soil == None:
+               for condition in data['conditions']:
+                  if condition.get('data_structure_type') == 2:
+                    self.station.leafsoil = condition.get('txid')
+                    loginf('LeafSoil station is using txid: {}'.format(self.station.leafsoil))
 
             #main_condition = data['conditions'][0]
             if self.station.txid_iss is None and self.station.txid_rain is None:
@@ -1049,7 +1114,7 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
                     else:
                         if self.test_midnight():
                             logdbg("Midnight, no UDP packet.")
-                        elif self.station.did == None or UDP_data["did"] == self.station.did:
+                        elif self.station.did == None or (UDP_data["did"] and UDP_data["did"] == self.station.did):
                             packet = self.station.decode_data_wll(UDP_data)
                             if self.station.log == 3:
                                loginf("udp-packet: %s" % packet)
