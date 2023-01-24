@@ -111,6 +111,7 @@ never
                     ('WH2650'),
                     ('WH2680'),
                     ('WS1900'),
+                    ('WN1980'),
                     ('HP2550'),
                     ('ecowitt-client'),
                     ]
@@ -147,22 +148,22 @@ never
                      ('wh31_ch7_sig'),
                      ('wh31_ch8_sig'),
                      ('wh32_sig'),                     
-                     ('wh34_ch1_sig'),
-                     ('wh34_ch2_sig'),
-                     ('wh34_ch3_sig'),
-                     ('wh34_ch4_sig'),
-                     ('wh34_ch5_sig'),
-                     ('wh34_ch6_sig'),
-                     ('wh34_ch7_sig'),
-                     ('wh34_ch8_sig'),
-                     ('wh35_ch1_sig'),
-                     ('wh35_ch2_sig'),
-                     ('wh35_ch3_sig'),
-                     ('wh35_ch4_sig'),
-                     ('wh35_ch5_sig'),
-                     ('wh35_ch6_sig'),
-                     ('wh35_ch7_sig'),
-                     ('wh35_ch8_sig'),
+                     ('wn34_ch1_sig'),
+                     ('wn34_ch2_sig'),
+                     ('wn34_ch3_sig'),
+                     ('wn34_ch4_sig'),
+                     ('wn34_ch5_sig'),
+                     ('wn34_ch6_sig'),
+                     ('wn34_ch7_sig'),
+                     ('wn34_ch8_sig'),
+                     ('wn35_ch1_sig'),
+                     ('wn35_ch2_sig'),
+                     ('wn35_ch3_sig'),
+                     ('wn35_ch4_sig'),
+                     ('wn35_ch5_sig'),
+                     ('wn35_ch6_sig'),
+                     ('wn35_ch7_sig'),
+                     ('wn35_ch8_sig'),
                      ('wh40_sig'),
                      ('wh41_ch1_sig'),
                      ('wh41_ch2_sig'),
@@ -237,7 +238,7 @@ never
 
 #set $testvoltage = False
 #if $testvoltage
-#set $voltagesno = [("ws1900battt",2.4),
+#set $voltagesno = [("ws1900batt",2.4),
 ("ws80_batt",2.4),
 ("ws80batt",2.4),
 ("ws90_batt",2.4),
@@ -399,7 +400,7 @@ never
        <td class="data">$get_conn_status($xv.raw)</td>
       #else
        #set $xv = getattr($current, $x).format("%.0f")
-       <td class="data">$xv%</td>
+       <td class="data">$xv</td>
       #end if
       #if $x != 'signal1_2' 
        #set $lasttime = $getattr($recent, $x).lasttime.raw
@@ -451,7 +452,7 @@ never
         #set $vstate = getattr($current, $battery[0]).format("%.0f")
         #if $vstate == '6'
            #set $vstate = ""
-           #set $graf = "Batt6.png"
+           #set $graf = "Batt6x.png"
         #elif $vstate == '5'
          #set $graf = "Batt5.png"
         #elif $vstate == '4'
@@ -470,7 +471,7 @@ never
           #if $graf == "Batt6.png"
            <td class="data">$state  <font color=#dfdfdf>$vstate</font></td>
           #else
-           <td class="data">$state  <font color=#dfdfdf>$vstate</font><img src=$graf style="height: 10px; width: 6px;"></td>
+           <td class="data"><img src=$graf style="height: 10px; width: 6px;" > $state  <font color=#dfdfdf>$vstate</font></td>
           #end if
           #set $lasttime = $getattr($recent, $battery[0]).lasttime.raw
           <td class="timestamp"> $get_time_delta($lasttime, $now)</td>
@@ -527,11 +528,12 @@ never
          #set $vv = 0
          #set $graf = "Batt0.png"
         #end if
-        #if $xx <= $x[1]
+        ##if $xx <= $x[1]
+        #if $xx == 0
          <td class="data"><span class="status_low">$xv.format("%.2f") <font color=#dfdfdf>$vv</font></span></td>
         #else
          ##<td class="data">$xv.format("%.2f") <font color=#dfdfdf>$vv</font></td>
-         <td class="data">$xv.format("%.2f") <font color=#dfdfdf>$vv</font><img src=$graf style="height: 10px; width: 6px;"></td>
+         <td class="data"><img src=$graf style="height: 10px; width: 6px;" > $xv.format("%.2f") <font color=#dfdfdf>$vv</font></td>
          ##<td class="data">$xv.format("%.2f")</td>
         #end if 
       #end if
@@ -593,6 +595,210 @@ never
  #end for
 
 #end if
+
+
+#if ($ecowitt == 1) and ($getattr($current, 'rain_source').has_data)
+ #if $use_lang
+   <tr><th>$gettext("Rain")</th><th></th></tr>
+ #else
+   <tr><th>Rain</th><th></th></tr>
+ #end if
+
+    #try
+      #set $test = 'rain_source'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test).raw
+        ##set $xx = int($xv) 
+        #if $xv == 2
+            #set $txt = "Piezoelectric"
+        #elif $xv == 1
+            #set $txt = "Tratitional"
+        #else
+           #set $txt = "No rain gauge"
+        #end if 
+        <td class="label">$obs.label[$test]</td>
+        <td class="data">$txt</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+
+    #try
+      #set $test = 'rain_day_reset'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test).raw
+        #if $xv == 0
+            #set $txt = "00:00"
+        #elif $xv == 1
+            #set $txt = "01:00"
+        #elif $xv == 2
+            #set $txt = "02:00"
+        #elif $xv == 3
+            #set $txt = "03:00"
+        #elif $xv == 4
+            #set $txt = "04:00"
+        #elif $xv == 5
+            #set $txt = "05:00"
+        #elif $xv == 6
+            #set $txt = "06:00"
+        #elif $xv == 7
+            #set $txt = "07:00"
+        #elif $xv == 8
+            #set $txt = "08:00"
+        #elif $xv == 9
+            #set $txt = "09:00"
+        #else
+            #set $txt = "??:??"
+        #end if
+        <td class="label">$obs.label[$test]</td>
+        <td class="data">$txt</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+
+    #try
+      #set $test = 'rain_week_reset'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test).raw
+        #if $xv == 0
+            #set $txt = "Sunday"
+        #elif $xv == 1
+            #set $txt = "Monday"
+        #else
+            #set $txt = "??????"
+        #end if
+        <td class="label">$obs.label[$test]</td>
+        ##<td class="data">$xv</td>
+        <td class="data">$txt</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+
+    #try
+      #set $test = 'rain_annual_reset'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test).raw
+        #if $xv == 0
+            #set $txt = "January"
+        #elif $xv == 1
+            #set $txt = "February"
+        #elif $xv == 2
+            #set $txt = "March"
+        #elif $xv == 3
+            #set $txt = "April"
+        #elif $xv == 4
+            #set $txt = "May"
+        #elif $xv == 5
+            #set $txt = "June"
+        #elif $xv == 6
+            #set $txt = "July"
+        #elif $xv == 11
+            #set $txt = "December"
+        #else
+            #set $txt = "??????"
+        #end if
+        <td class="label">$obs.label[$test]</td>
+        <td class="data">$txt</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+
+    #try
+      #set $test = 'raingain'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test)
+        <td class="label">$obs.label[$test]</td>
+        <td class="data">$xv.format("%.2f")</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+    #try
+      #set $test = 'gain0'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test)
+        <td class="label">Gain1 Rain<4 mm/h</td>
+        <td class="data">$xv.format("%.2f")</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+    #try
+      #set $test = 'gain1'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test)
+        <td class="label">Gain2 Rain<10 mm/h</td>
+        <td class="data">$xv.format("%.2f")</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+    #try
+      #set $test = 'gain2'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test)
+        <td class="label">Gain3 Rain<30 mm/h</td>
+        <td class="data">$xv.format("%.2f")</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+    #try
+      #set $test = 'gain3'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test)
+        <td class="label">Gain4 Rain<60 mm/h</td>
+        <td class="data">$xv.format("%.2f")</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+    #try
+      #set $test = 'gain4'
+      #if $getattr($current, $test).has_data
+        <tr>
+        #set $xv = $getattr($current, $test)
+        <td class="label">Gain5 Rain>60 mm/h</td>
+        <td class="data">$xv.format("%.2f")</td>
+        </tr> 
+      #end if
+    #except (AttributeError, TypeError)
+      ## there is no data for that sensor
+      #pass
+    #end try
+
+#end if
+
 
   </table>
   </div>
