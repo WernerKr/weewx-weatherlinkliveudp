@@ -41,7 +41,7 @@ from weewx.engine import StdService
 
 log = logging.getLogger(__name__)
 
-WEEWX_AIRLINK_VERSION = "1.3"
+WEEWX_AIRLINK_VERSION = "1.31"
 
 if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 7):
     raise weewx.UnsupportedFeature(
@@ -83,6 +83,9 @@ weewx.units.obs_group_dict['wet_bulb'] = 'group_temperature'
 weewx.units.obs_group_dict['heat_index'] = 'group_temperature'
 weewx.units.obs_group_dict['hum'] = 'group_percent'
 weewx.units.obs_group_dict['co2_Hum'] = 'group_percent'
+weewx.units.obs_group_dict['dewpoint1'] = 'group_temperature'
+weewx.units.obs_group_dict['wetbulb1'] = 'group_temperature'
+weewx.units.obs_group_dict['heatindex1'] = 'group_temperature'
 
 weewx.units.obs_group_dict['pm10_0_nowcast'] = 'group_concentration'
 weewx.units.obs_group_dict['pm2_5_nowcast'] = 'group_concentration'
@@ -126,6 +129,9 @@ class Concentrations:
     heat_index    : float
     co2_Temp      : float
     co2_Hum       : float
+    dewpoint1     : float
+    wetbulb1      : float
+    heatindex1    : float
     pm_2p5_last_1_hour : float
     pm_2p5_last_3_hours : float
     pm_2p5_last_24_hours : float
@@ -178,6 +184,9 @@ def get_concentrations(cfg: Configuration):
                     dew_point      = record['dew_point'],
                     wet_bulb       = record['wet_bulb'],
                     heat_index     = record['heat_index'],
+                    dewpoint1      = record['dewpoint1'],
+                    wetbulb1       = record['wetbulb1'],
+                    heatindex1     = record['heatindex1'],
                     pm_2p5_last_1_hour = record['pm_2p5_last_1_hour'],
                     pm_2p5_last_3_hours = record['pm_2p5_last_3_hours'],
                     pm_2p5_last_24_hours = record['pm_2p5_last_24_hours'],
@@ -371,6 +380,9 @@ def populate_record(ts, j):
     record['dew_point'] = get_and_update_missed('dew_point')
     record['wet_bulb'] = get_and_update_missed('wet_bulb')
     record['heat_index'] = get_and_update_missed('heat_index')
+    record['dewpoint1'] = record['dew_point']
+    record['wetbulb1'] = record['wet_bulb']
+    record['heatindex1'] = record['heat_index']
     record['pct_pm_data_last_1_hour'] = get_and_update_missed('pct_pm_data_last_1_hour')
     record['pct_pm_data_last_3_hours'] = get_and_update_missed('pct_pm_data_last_3_hours')
     record['pct_pm_data_nowcast'] = get_and_update_missed('pct_pm_data_nowcast')
@@ -463,11 +475,14 @@ class AirLink(StdService):
                    packet['temp']       = cfg.concentrations.temp
                    packet['co2_Temp']   = packet['temp']
                 if cfg.concentrations.heat_index is not None:
-                   packet['heatindex1']   = cfg.concentrations.heat_index
+                   packet['heat_index']   = cfg.concentrations.heat_index
+                   packet['heatindex1']   = packet['heat_index']
                 if cfg.concentrations.dew_point is not None:
-                   packet['dewpoint1']   = cfg.concentrations.dew_point
+                   packet['dew_point']   = cfg.concentrations.dew_point
+                   packet['dewpoint1']   = packet['dew_point']
                 if cfg.concentrations.wet_bulb is not None:
-                   packet['wetbulb1']   = cfg.concentrations.wet_bulb
+                   packet['wet_bulb']   = cfg.concentrations.wet_bulb
+                   packet['wetbulb1']   = packet['wet_bulb']
 
                 if cfg.concentrations.pm_2p5_last_24_hours is not None:
                    packet['pm_2p5_last_24_hours']   = cfg.concentrations.pm_2p5_last_24_hours

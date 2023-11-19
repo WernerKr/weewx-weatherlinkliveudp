@@ -120,6 +120,11 @@ weewx.units.obs_group_dict['rainfall_last_24_hr_2'] = 'group_rain'
 weewx.units.obs_group_dict['rain_storm_start_at_2'] = 'group_time'
 weewx.units.obs_group_dict['rain_storm_last_start_at_2'] = 'group_time'
 weewx.units.obs_group_dict['rain_storm_last_end_at_2'] = 'group_time'
+weewx.units.obs_group_dict['windrun_2'] = 'group_distance'
+weewx.units.obs_group_dict['sunshineDur'] = 'group_deltatime'
+weewx.units.obs_group_dict['sunshineDur_2'] = 'group_deltatime'
+weewx.units.obs_group_dict['rainDur'] = 'group_deltatime'
+weewx.units.obs_group_dict['rainDur_2'] = 'group_deltatime'
 
 MM2INCH = 1 / 25.4
 
@@ -252,6 +257,11 @@ class WllStation:
         self.log = 0
         #self.rainbarrel = 0
 
+        self.rain2init = False
+        self.rain2_previous_period = 0
+        self.rain2_bucketsize2 = 0.01
+        self.raindatetime = int(time.time())
+
     rainbarrel = RainBarrel()
 
 
@@ -346,6 +356,7 @@ class WllStation:
 
         packet['dateTime'] = timestamp
         packet['usUnits'] = weewx.US
+        self.raindatetime = packet['dateTime']
 
         for condition in data['conditions']:
             # 1 = ISS Current Conditions record
@@ -874,56 +885,97 @@ class WllStation:
             packet['txBatteryStatus_2'] = iss2_data['trans_battery_flag']
             packet['signal1_2'] = iss2_data['rx_state']
 
-            self.rainbarrel.bucketsize2 = 0.01
+            self.rain2_bucketsize2 = 0.01
             type = iss2_data['rain_size']
             if 1 <= type <= 4:
                if type == 1:
-                  self.rainbarrel.bucketsize2 = 0.01
+                  self.rain2_bucketsize2 = 0.01
                elif type == 2:
-                  self.rainbarrel.bucketsize2 = 0.2 * MM2INCH
+                  self.rain2_bucketsize2 = 0.2 * MM2INCH
                elif type == 3:
-                  self.rainbarrel.bucketsize2 = 0.1 * MM2INCH
+                  self.rain2_bucketsize2 = 0.1 * MM2INCH
                elif type == 4:
-                  self.rainbarrel.bucketsize2 = 0.001
+                  self.rain2_bucketsize2 = 0.001
 
             if iss2_data['rain_storm'] != None:
-              packet['stormRain_2'] = iss2_data['rain_storm'] * self.rainbarrel.bucketsize2
+              packet['stormRain_2'] = iss2_data['rain_storm'] * self.rain2_bucketsize2
             if iss2_data['rain_storm_last'] != None:
-              packet['stormRainlast_2'] = iss2_data['rain_storm_last'] * self.rainbarrel.bucketsize2
+              packet['stormRainlast_2'] = iss2_data['rain_storm_last'] * self.rain2_bucketsize2
             if iss2_data['rainfall_last_15_min'] != None:
-              packet['rain15_2'] = iss2_data['rainfall_last_15_min'] * self.rainbarrel.bucketsize2
+              packet['rain15_2'] = iss2_data['rainfall_last_15_min'] * self.rain2_bucketsize2
             if iss2_data['rainfall_last_60_min'] != None:
-              packet['rain60_2'] = iss2_data['rainfall_last_60_min'] * self.rainbarrel.bucketsize2
+              packet['rain60_2'] = iss2_data['rainfall_last_60_min'] * self.rain2_bucketsize2
             if iss2_data['rainfall_last_24_hr'] != None:
-              packet['rain24_2'] = iss2_data['rainfall_last_24_hr'] * self.rainbarrel.bucketsize2
+              packet['rain24_2'] = iss2_data['rainfall_last_24_hr'] * self.rain2_bucketsize2
             if iss2_data['rain_rate_hi_last_15_min'] != None:
-              packet['rain_rate_hi_last_15_min_2'] = iss2_data['rain_rate_hi_last_15_min'] * self.rainbarrel.bucketsize2
+              packet['rain_rate_hi_last_15_min_2'] = iss2_data['rain_rate_hi_last_15_min'] * self.rain2_bucketsize2
 
 
             packet['rain_storm_start_at_2'] = iss2_data['rain_storm_start_at']
             packet['rain_storm_last_start_at_2'] = iss2_data['rain_storm_last_start_at']
             packet['rain_storm_last_end_at_2'] = iss2_data['rain_storm_last_end_at']
 
-            packet['dayRain_2'] = iss2_data['rainfall_daily'] * self.rainbarrel.bucketsize2
-            packet['monthRain_2'] = iss2_data['rainfall_monthly'] * self.rainbarrel.bucketsize2
-            packet['yearRain_2'] = iss2_data['rainfall_year'] * self.rainbarrel.bucketsize2
+            packet['dayRain_2'] = iss2_data['rainfall_daily'] * self.rain2_bucketsize2
+            packet['monthRain_2'] = iss2_data['rainfall_monthly'] * self.rain2_bucketsize2
+            packet['yearRain_2'] = iss2_data['rainfall_year'] * self.rain2_bucketsize2
 
-            self.rainbarrel.rain2 = iss2_data['rainfall_daily']
-            packet['rainRate_2'] = iss2_data['rain_rate_last'] * self.rainbarrel.bucketsize2
 
-            rain_now = self.rainbarrel.rain2 - self.rainbarrel.rain_previous_period2
-            if rain_now > 0:
-               self.rainbarrel.rain_previous_period2 = self.rainbarrel.rain2
-               # Empty Barrel
-               #self.rainbarrel.empty_rain_barrel()
-            self.rainbarrel.rain2 = 0
-            rain_2v = rain_now * self.rainbarrel.bucketsize2
+            if iss2_data['rainfall_daily'] is not None:
+               test = iss2_data['rainfall_daily'] * self.rain2_bucketsize2
+               if self.rain2init is False:
 
-            if rain_2v >= 0:
-              packet['rain_2'] = rain_2v
-            else:
-              packet['rain_2'] = 0
+                 # Check current rain for the day and set it
+                 self.rain2_previous_period = iss2_data['rainfall_daily'] * self.rain2_bucketsize2
 
+                 # Set date for previous rain
+                 self.rain2_previous_date = datetime.datetime.fromtimestamp(self.raindatetime)
+                 self.rain2init = True
+
+
+               if self.rain2init is True:
+                  #self.rainbarrel.rain2 = iss2_data['rainfall_daily']
+
+                  packet['rainRate_2'] = iss2_data['rain_rate_last'] * self.rain2_bucketsize2
+
+
+                  rain2_now = (iss2_data['rainfall_daily'] * self.rain2_bucketsize2) - self.rain2_previous_period
+                  rain2_v = rain2_now
+
+                  if rain2_v >= 0:
+                     packet["rain_2"] = rain2_v
+                     if (self.log == 6) and rain2_v > 0:
+                        loginf("rain_2 %.2f mm " % (packet["rain_2"]*25.4))
+                  else: 
+                     if (rain2_v-test < 0) and  (abs(rain2_v) != test):
+                        packet["rain_2"] = test
+                        if (self.log == 6) and (packet["rain_2"] > 0): 
+                           loginf("rain_2abs  %.2f mm" % (packet["rain_2"]*25.4))
+                     else:
+                        packet["rain_2"] = 0
+
+                  self.rain2_previous_period = iss2_data['rainfall_daily'] * self.rain2_bucketsize2
+                  self.rain2_previous_date = datetime.datetime.fromtimestamp(self.raindatetime)
+
+
+            #rain_now = self.rainbarrel.rain2 - self.rainbarrel.rain_previous_period2
+            #if rain_now > 0:
+            #   self.rainbarrel.rain_previous_period2 = self.rainbarrel.rain2
+            #   # Empty Barrel
+            #   #self.rainbarrel.empty_rain_barrel()
+            #self.rainbarrel.rain2 = 0
+            #rain_2v = rain_now * self.rainbarrel.bucketsize2
+
+            #if rain_2v >= 0:
+            #  packet['rain_2'] = rain_2v
+            #else:
+            #  packet['rain_2'] = 0
+
+            if packet['outTemp_2'] is not None and packet['outHumidity_2'] is not None:
+              packet['humidex1'] = weewx.wxformulas.humidexF(packet['outTemp_2'], packet['outHumidity_2'])
+              if packet['windSpeed_2'] is not None:
+                 packet['appTemp1'] = weewx.wxformulas.apptempF(packet['outTemp_2'], packet['outHumidity_2'],packet['windSpeed_2'])
+            if packet['windSpeed_2'] is not None:
+              packet['windrun_2'] = packet['windSpeed_2'] * 5 / 60.0 #(miles)		#self.poll_interval
 
 
         return packet
@@ -1017,6 +1069,7 @@ class WeatherLinkLiveUDPDriver(weewx.drivers.AbstractDevice):
         self.station.set_wind(stn_dict.get('wind'))
         self.station.set_rain(stn_dict.get('txid_rain'))
         self.station.set_txid2(stn_dict.get('txid_iss2'))
+
         
         # Tells the WW to begin broadcasting UDP data and continue for 1 hour seconds
         self.station.real_rime_url = 'http://{}:80/v1/real_time?duration=3600'.format(self.wll_ip)

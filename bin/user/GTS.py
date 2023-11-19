@@ -101,7 +101,7 @@
         
 """
 
-VERSION = "0.8b1"
+VERSION = "1.0"
 
 # deal with differences between python 2 and python 3
 try:
@@ -123,6 +123,7 @@ except ImportError:
 import time
 import datetime
 import threading
+import math
 
 import weedb
 import weewx
@@ -206,7 +207,24 @@ def genDaySpansWithoutDST(start_ts, stop_ts):
     if None in (start_ts, stop_ts): return
     for time_ts in range(int(start_ts),int(stop_ts),86400):
         yield TimeSpan(int(time_ts),int(time_ts+86400))
+
     
+def boilingTemperatureCC(pressure, temp1=99.9743, deltaH=40.657):
+    """ boiling temperature of water
+    
+        https://de.wikipedia.org/wiki/Clausius-Clapeyron-Gleichung
+        
+        The equation is valid for a invariable enthalpy of
+        vaporization, which applies to small temperature
+        ranges only.
+    """
+    p1 = 1013.25 # hPa           Normaldruck
+    T1 = temp1+273.15 # K        Siedetemperatur bei Normaldruck
+    deltaH *= 1000.0 # J/mol     molare Verdampfungsenthalpie bei 100°C
+    R = 8.314462 # J mol^-1 K^-1 universelle Gaskonstante
+    temp = 1.0/(1.0/T1 - math.log(pressure/p1)*R/deltaH)-273.15
+    return temp
+
 
 # unit g/m^2 and mg/m^2 for 'group_concentration'
 weewx.units.conversionDict.setdefault('microgram_per_meter_cubed',{})
@@ -300,6 +318,8 @@ class GTSType(weewx.xtypes.XType):
         # equivalent temperature, equivalent potential temperature
         weewx.units.obs_group_dict.setdefault('outEquiTemp','group_temperature')
         weewx.units.obs_group_dict.setdefault('outThetaE','group_temperature')
+        # boiling point
+        weewx.units.obs_group_dict.setdefault('boilingTemp','group_temperature')
         
         # lock that makes calculation atomic
         self.lock=threading.Lock()
@@ -470,7 +490,7 @@ class GTSType(weewx.xtypes.XType):
 
         if obs_type is None:
             raise weewx.UnknownType("obs_type is None")
-            
+        
         # time offset of local mean time (LMT)
         if obs_type=='utcoffsetLMT':
             return weewx.units.ValueTuple(self.lmt_tz.utcoffset(None).total_seconds(),'second','group_deltatime')
@@ -491,7 +511,10 @@ class GTSType(weewx.xtypes.XType):
                         'outEquiTemp','outThetaE'):
             #_result = weewx.xtypes.get_scalar('outTemp',record,db_manager)
             try:
+                # If record is None or `outTemp` not in record, then
+                # a ValueTuple with the value of None is returned
                 _result = weewx.units.as_value_tuple(record,'outTemp')
+                # If _result represents a value of None, temp_C is None, too.
                 temp_C = weewx.units.convert(_result,'degree_C')[0]
                 method = option_dict.get('method',self.svp_method)
                 if obs_type=='outSVP':
@@ -537,7 +560,20 @@ class GTSType(weewx.xtypes.XType):
             if record is None: return __x
             # see https://github.com/weewx/weewx/issues/781
             return weewx.units.convertStd(__x,record['usUnits'])
-            
+        
+        if obs_type=='boilingTemp':
+            try:
+                _result = weewx.units.as_value_tuple(record,'pressure')
+                pressure_mbar = weewx.units.convert(_result,'hPa')[0]
+                method = option_dict.get('algorithm','CC')
+                btemp_C = boilingTemperatureCC(pressure_mbar)
+                usunits = record['usUnits']
+            except (LookupError,TypeError,ValueError,ArithmeticError):
+                btemp_C = None
+                usunits = 0x10
+            __x = weewx.units.ValueTuple(btemp_C,'degree_C','group_temperature')
+            return weewx.units.convertStd(__x,usunits)
+                
         # This functions handles 'GTS' and 'GTSdate'.
         if obs_type not in ['GTS','GTSdate','dayET','ET24','yearGDD','seasonGDD']:
             raise weewx.UnknownType(obs_type)
@@ -926,11 +962,11 @@ class GTSType(weewx.xtypes.XType):
                         valtime = _result[0]
                     else:
                         raise weewx.UnknownType("%s.%s: unknown aggregation type" % (obs_type,aggregate_type))
-            if aggregate_type=='avg': 
-                if n>0:
-                    val /= n
-                else:
-                    val = None
+            if n==0:
+                _x = self.get_scalar(obs_type, None, None, **option_dict)
+                val = _x[0]
+            elif aggregate_type=='avg': 
+                val /= n
             if 'time' in aggregate_type:
                 return weewx.units.ValueTuple(valtime,'unix_epoch','group_time')
             if aggregate_type=='count':
@@ -1059,7 +1095,7 @@ class GTSType(weewx.xtypes.XType):
         
         # aggregation types that are defined for those values
         if aggregate_type not in ['avg','max','min','last','maxtime','mintime','lasttime']:
-            raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregation_type))
+            raise weewx.UnknownAggregation("%s undefinded aggregation %s" % (obs_type,aggregate_type))
 
         if timespan is None:
             raise weewx.CannotCalculate("%s %s no timespan" % (obs_type,aggregate_type))
@@ -1204,6 +1240,11 @@ class GTSType(weewx.xtypes.XType):
         raise weewx.CannotCalculate("%s %s" % (obs_type,aggregate_type))
 
 
+try:
+    import user.barometer
+    has_baro = True
+except ImportError:
+    has_baro = False
 
 # This is a WeeWX service, whose only job is to register and unregister the extension
 class GTSService(StdService):
@@ -1213,8 +1254,9 @@ class GTSService(StdService):
         
         # the station's location
         # (needed for calculation of the local mean time (LMT))
-        __lat=engine.stn_info.latitude_f
-        __lon=engine.stn_info.longitude_f
+        __lat = engine.stn_info.latitude_f
+        __lon = engine.stn_info.longitude_f
+        __alt_vt = engine.stn_info.altitude_vt
 
         # saturation vapor pressure calculation method
         __svp_method = config_dict.get('StdWXCalculate',{}).get('WXXTypes',{}).get('VaporPressure',{})
@@ -1229,6 +1271,17 @@ class GTSService(StdService):
         # Note: This can be overwritten by the 'search_list' entry in skin_dict
         weewx.cheetahgenerator.default_search_list.append('user.dayboundarystats.DayboundaryStats')
         
+        # Register barometer workaround
+        loginf('PressureCooker %s' % has_baro)
+        if has_baro:
+            pc_dict =  config_dict.get('StdWXCalculate',{}).get('PressureCooker',{})
+            self.barometer = user.barometer.PressureCooker(__alt_vt,
+                max_delta_12h=weeutil.weeutil.to_float(pc_dict.get('max_delta_12h',1800)),
+                altimeter_algorithm=pc_dict.get('altimeter',{}).get('algorithm','aaASOS'),
+                barometer_algorithm=pc_dict.get('barometer',{}).get('algorithm','paWView'))
+            loginf('PressureCooker %s ' % self.barometer)
+            weewx.xtypes.xtypes.append(self.barometer)
+        
     def shutDown(self):
     
         # Engine is shutting down. Remove the registration
@@ -1236,5 +1289,9 @@ class GTSService(StdService):
         
         # Remove tag registration
         weewx.cheetahgenerator.default_search_list.remove('user.dayboundarystats.DayboundaryStats')
+        
+        # Remove barometer workaround
+        if has_baro:
+            weewx.xtypes.xtypes.remove(self.barometer)
 
 
