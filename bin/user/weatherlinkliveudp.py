@@ -22,6 +22,7 @@
 # added ISS2 - corrected Main Rain 1 Januar 2022
 # added own log, more loop packets (dewpoint_1 ...)
 # added did (MAC Adress from the Live) needed if more than one DAVIS stations reports on port 22222
+# corrected rain_2 for second Vantage/VUE
 
 """
 
@@ -52,7 +53,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.5.1'
+DRIVER_VERSION = '0.5.2'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
