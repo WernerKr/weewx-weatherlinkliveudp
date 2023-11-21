@@ -92,6 +92,8 @@ sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rain_2 
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rainRate_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=xBatteryStatus_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rsignal1_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rainDur_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=sunshineDur_2 --type=REAL
 ```
 ```
 # The WLL can get dat from up to eight transmitters. If multiple transmitters e.g. extra ISS for wind, extra temp sensor, requires the lsid_iss
