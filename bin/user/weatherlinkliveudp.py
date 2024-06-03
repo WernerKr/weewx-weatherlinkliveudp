@@ -32,6 +32,38 @@ Also it collects a real-time 2.5 sec broadcast for wind speed and rain over UDP 
 
 See Davis weatherlink-live-local-api
 
+weewx.conf:
+[WeatherLinkLiveUDP]
+    wll_ip = 1.2.3.4
+    poll_interval = 10              # number of seconds [minimal 10 sec.]
+    driver = user.weatherlinkliveudp
+    #txid_iss = 1                  # if not set - as here,  the txid_id for a ISS or VUE is automatical detected 
+    #extra_id = 2                  # id for extra Temp/Hum station (sensor suite)
+    #extra_id2 = None              # id for extra2 Temp/Hum station (sensor suite)
+    #extra_id3 = None              # id for extra3 Temp/Hum station (sensor suite)
+    #extra_id4 = None              # sensor-suite ID as temp/hum(4) station or solar/uv station
+                                   # one leaf_soil station is automatical detected
+    #leaf = None                   # id of only leaf station
+    #soil = None                   # id of only soil station
+    #wind = None                   # sensor-suite ID as only wind station
+    #txid_rain = None              # sensor-suite ID as only rain station
+    #txid_iss2 = None              # ID of second ISS and/or VUE
+    #did = 001D0A61F5E8           #MAC-Adresse of the Live - is needed, if more then one DAVIS stations reports at port 22222
+    log = 0                       #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=iss, 5=extra_data1..4, 6=Wind,Rain, 7=ISS2, 8=iss_udp, 9=all reception
+
+Example:
+[WeatherLinkLiveUDP]
+    wll_ip = 192.168.0.101
+    poll_interval = 30
+    driver = user.weatherlinkliveudp
+    txid_iss = 4
+    txid_iss2 = 1 
+    extra_id = 2
+    soil = 8
+    leaf = 7
+    log = 1
+    did = 001D0A61F5E8
+
 """
 
 from __future__ import with_statement
@@ -53,7 +85,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.5.2'
+DRIVER_VERSION = '0.6.0'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
@@ -413,7 +445,7 @@ class WllStation:
                 extra_data2 = condition
             if self.extra3 and condition.get('txid') == self.extra3 and condition.get('temp'):
                 extra_data3 = condition
-            if self.extra4 and condition.get('txid') == self.extra4 and condition.get('temp'):
+            if self.extra4 and condition.get('txid') == self.extra4 and (condition.get('temp') or condition.get('solar_rad') or condition.get('uv_index')):
                 extra_data4 = condition
 
 
@@ -729,6 +761,12 @@ class WllStation:
                packet['wetbulb_4'] = extra_data4['wet_bulb']
             if extra_data4.get('heat_index'):
                packet['heatindex_4'] = extra_data4['heat_index']
+
+            if extra_data4.get('solar_rad'):
+               packet['radiation'] = iss_data['solar_rad']
+
+            if extra_data4.get('uv_index'):
+               packet['UV'] = iss_data['uv_index']
 
             test = ''  
             if extra_data4.get('rx_state'):
