@@ -102,16 +102,16 @@ sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=sunshin
     poll_interval = 10              # number of seconds [minimal 10 sec.]
     driver = user.weatherlinkliveudp
      #txid_iss = 1                  # if not set - as here,  the txid_id for a ISS or VUE is automatical detected 
-     #extra_id = 2
-     #extra_id2 = None
-     #extra_id3 = None
-     #extra_id4 = None
-                                    #one leaf_soil station is automatical detected
-     #leaf = None                   #only leaf station
-     #soil = None                   #only soil station
-     #wind = None
-     #txid_rain = None
-     #txid_iss2 = None
+     #extra_id = 2                  # id for sensor suite which supports only temp/hum
+     #extra_id2 = None              # id for sensor suite which supports only temp/hum
+     #extra_id3 = None              # id for sensor suite which supports only temp/hum
+     #extra_id4 = None              # id which supports sensor suite as temp/hum station or solar/uv station
+                                    # one leaf_soil station is automatical detected
+     #leaf = None                   # if only leaf station
+     #soil = None                   # id only soil station
+     #wind = None                   # id of sensor suite with only wind sensor
+     #txid_rain = None              # id of sensor suite with only rain sensor
+     #txid_iss2 = None              # id of second ISS or VUE
      #did = 001D0A61F5E8           #MAC-Adresse of the Live - is needed, if more then one DAVIS stations reports at port 22222
      log = 0                       #internal log-level: 1=UDP check time, 2=only archive-packets, 3=all packets, 4=iss, 5=extra_data1..4, 6=Wind,Rain, 7=ISS2, 8=iss_udp, 9=all reception
 
