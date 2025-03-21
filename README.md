@@ -153,6 +153,7 @@ Note: The driver requires the Python `requests` library. To install it:
 
 ```
 sudo apt-get update 
+
 sudo apt-get install python-requests
 ```
 or use pip
