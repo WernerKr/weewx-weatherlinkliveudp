@@ -74,6 +74,7 @@ signal1_2
 
 ```
 # If you would like to expand your database schema with this data:
+V4.x
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outTemp_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=outHumidity_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=dewpoint2 --type=REAL
@@ -94,6 +95,30 @@ sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=xBatter
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rsignal1_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=rainDur_2 --type=REAL
 sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=sunshineDur_2 --type=REAL
+sudo echo "y" | wee_database --config=/etc/weewx/weewx.conf --add-column=windGustSpeed10_2 --type=REAL
+
+V5.x
+weectl database add-column outTemp_2 --type=REAL -y
+weectl database add-column outHumidity_2 --type=REAL -y
+weectl database add-column dewpoint2 --type=REAL -y
+weectl database add-column heatindex2 --type=REAL -y
+weectl database add-column windchill2 --type=REAL -y
+weectl database add-column THSW_2 --type=REAL -y
+weectl database add-column THW_2 --type=REAL -y
+weectl database add-column outWetbulb_2 --type=REAL -y
+weectl database add-column radiation_2 --type=REAL -y
+weectl database add-column UV_2 --type=REAL -y
+weectl database add-column windSpeed_2 --type=REAL -y
+weectl database add-column windDir_2 --type=REAL -y
+weectl database add-column windGust_2 --type=REAL -y
+weectl database add-column windGustDir_2 --type=REAL -y
+weectl database add-column rain_2 --type=REAL -y
+weectl database add-column rainRate_2 --type=REAL -y
+weectl database add-column xBatteryStatus_2 --type=REAL -y
+weectl database add-column rsignal1_2 --type=REAL -y
+weectl database add-column rainDur_2 --type=REAL -y
+weectl database add-column sunshineDur_2 --type=REAL -y
+weectl database add-column windGustSpeed10_2 --type=REAL -y
 ```
 ```
 # The WLL can get dat from up to eight transmitters. If multiple transmitters e.g. extra ISS for wind, extra temp sensor, requires the lsid_iss
