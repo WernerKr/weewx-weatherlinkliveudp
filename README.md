@@ -145,6 +145,7 @@ weectl database add-column windGustSpeed10_2 --type=REAL -y
 
 ```
 sudo systemctl stop weewx
+
 sudo systemctl start weewx
 ```
 
