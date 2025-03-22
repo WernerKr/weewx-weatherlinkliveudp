@@ -164,7 +164,7 @@ weectl database add-column windGustSpeed10_2 --type=REAL -y
     
     [[wx_binding]]
         # This is likely to be the only option you would want to change.
-        database = archive_sqlite
+        database = daviswll_sqlite
         table_name = archive
         manager = weewx.manager.DaySummaryManager
         schema = schemas.wview_extendedmy.schema
@@ -183,8 +183,8 @@ weectl database add-column windGustSpeed10_2 --type=REAL -y
 
 [Databases]
     
-    [[archive_sqlite]]
-        database_name = weewx_wlludp.sdb
+    [[daviswll_sqlite]]
+        database_name = daviswll.sdb
         database_type = SQLite
     [[davishealthapi_sqlite]]
         database_type = SQLite
