@@ -3,7 +3,9 @@ Weewx Driver for The WeatherLink Live (WLL). It implements a HTTP interface for 
 Also it collects a real-time 2.5 sec broadcast for wind speed and rain over UDP port 22222.
 More information on the Davis Intruments website: [See Davis weatherlink-live-local-api](https://weatherlink.github.io/weatherlink-live-local-api/)
 
-To see a live demo of this plugin visit [pc-wetterstation.de/weewx](https://www.pc-wetterstation.de/wetter/weewx), it features the [Belchertown weewx skin](https://github.com/poblabs/weewx-belchertown#belchertown-weewx-skin) from [Pat O'Brien](https://github.com/poblabs).
+To see a live demo of this plugin visit [pc-wetterstation.de/weewx](https://www.pc-wetterstation.de/wetter/weewx), it features also the [Belchertown weewx skin](https://github.com/poblabs/weewx-belchertown#belchertown-weewx-skin) from [Pat O'Brien](https://github.com/poblabs)
+
+https://www.pc-wetterstation.de/wetter/weewx/belchertown/index.html .
 
 ### Installation
 
