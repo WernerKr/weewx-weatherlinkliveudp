@@ -1,8 +1,7 @@
 #!/usr/bin/python
 #
 # Copyright 2020 Bastiaan Meelberg
-# Modified 2021/2022 Werner Krenn (Leaf/Soil/...)
-# Added Extra2..Extra4, Wind, Rain, ISS2
+# Modified 2021...2025 Werner Krenn (Leaf/Soil/...)
 #
 # This program is free software: you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
@@ -16,13 +15,15 @@
 #
 # Based on https://weatherlink.github.io/weatherlink-live-local-api/
 #
-# Bug Fixes September 2020
-# added leaf/soil October 2021
-# added extra Wind, extra Rain, extra2...4 December 2021
-# added ISS2 - corrected Main Rain 1 Januar 2022
-# added own log, more loop packets (dewpoint_1 ...)
-# added did (MAC Adress from the Live) needed if more than one DAVIS stations reports on port 22222
-# corrected rain_2 for second Vantage/VUE
+# 09/2020: Bug Fixes 
+# 10/2021: added leaf/soil
+# 12/2021: added extra Wind, extra Rain, extra2...4
+# 01/2022: added ISS2 - corrected Main Rain
+#          added own log, more loop packets (dewpoint_1 ...)
+#          added did (MAC Adress from the Live) needed if more than one DAVIS stations reports on port 22222
+#          corrected rain_2 for second Vantage/VUE
+# 03/2025: exception with rain_rate_last was None
+#          radiation/UV on extra_id4 wasn't correct  
 
 """
 
@@ -85,7 +86,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.6.0'
+DRIVER_VERSION = '0.6.2'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
@@ -445,8 +446,26 @@ class WllStation:
                 extra_data2 = condition
             if self.extra3 and condition.get('txid') == self.extra3 and condition.get('temp'):
                 extra_data3 = condition
-            if self.extra4 and condition.get('txid') == self.extra4 and (condition.get('temp') or condition.get('solar_rad') or condition.get('uv_index')):
-                extra_data4 = condition
+            if self.extra4 and condition.get('txid') == self.extra4: # and (condition.get('temp') or condition.get('solar_rad') or condition.get('uv_index')):
+
+               testok = False
+               test = ''  
+               test = condition.get('temp', None) 
+               if test != None:
+                  testok = True
+
+               test = ''  
+               test = condition.get('solar_rad', None) 
+               if test != None:
+                  testok = True
+
+               test = ''  
+               test = condition.get('uv_index', None) 
+               if test != None:
+                  testok = True
+
+               if testok == True:
+                  extra_data4 = condition
 
 
             if self.txid_iss2 and condition.get('txid') == self.txid_iss2:
@@ -541,10 +560,12 @@ class WllStation:
             packet['outWetbulb'] = iss_data['wet_bulb']
 
             # most recent solar radiation **(W/m)**
-            packet['radiation'] = iss_data['solar_rad']
+            if iss_data['solar_rad'] != None:
+               packet['radiation'] = iss_data['solar_rad']
 
             # most recent UV index **(Index)**
-            packet['UV'] = iss_data['uv_index']
+            if iss_data['uv_index'] != None:
+               packet['UV'] = iss_data['uv_index']
 
             # transmitter battery status flag **(no unit)**
             packet['txBatteryStatus'] = iss_data['trans_battery_flag']
@@ -580,7 +601,9 @@ class WllStation:
             packet['yearRain'] = iss_data['rainfall_year'] * self.rainbarrel.bucketsize
 
             self.rainbarrel.rain = iss_data['rainfall_daily']
-            packet['rainRate'] = iss_data['rain_rate_last'] * self.rainbarrel.bucketsize
+
+            if iss_data['rain_rate_last'] != None:
+               packet['rainRate'] = iss_data['rain_rate_last'] * self.rainbarrel.bucketsize
 
             self.calculate_rain()
 
@@ -762,11 +785,21 @@ class WllStation:
             if extra_data4.get('heat_index'):
                packet['heatindex_4'] = extra_data4['heat_index']
 
+            test = ''  
             if extra_data4.get('solar_rad'):
-               packet['radiation'] = iss_data['solar_rad']
+               packet['radiation'] = extra_data4['solar_rad']
+            else:
+               test = extra_data4.get('solar_rad', None) 
+               if test != None:
+                 packet['radiation'] = test
 
+            test = ''  
             if extra_data4.get('uv_index'):
-               packet['UV'] = iss_data['uv_index']
+               packet['UV'] = extra_data4['uv_index']
+            else:
+               test = extra_data4.get('uv_index', None) 
+               if test != None:
+                 packet['UV'] = test
 
             test = ''  
             if extra_data4.get('rx_state'):
@@ -973,8 +1006,8 @@ class WllStation:
 
                if self.rain2init is True:
                   #self.rainbarrel.rain2 = iss2_data['rainfall_daily']
-
-                  packet['rainRate_2'] = iss2_data['rain_rate_last'] * self.rain2_bucketsize2
+                  if iss2_data['rain_rate_last'] != None:
+                     packet['rainRate_2'] = iss2_data['rain_rate_last'] * self.rain2_bucketsize2
 
 
                   rain2_now = (iss2_data['rainfall_daily'] * self.rain2_bucketsize2) - self.rain2_previous_period
