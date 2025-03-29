@@ -86,7 +86,7 @@ import sys
 import weewx.units
 
 DRIVER_NAME = 'WeatherLinkLiveUDP'
-DRIVER_VERSION = '0.6.2'
+DRIVER_VERSION = '0.6.3'
 
 weewx.units.obs_group_dict['THW'] = 'group_temperature'
 weewx.units.obs_group_dict['outWetbulb'] = 'group_temperature'
@@ -111,6 +111,11 @@ weewx.units.obs_group_dict['heatindex_1'] = 'group_temperature'
 weewx.units.obs_group_dict['heatindex_2'] = 'group_temperature'
 weewx.units.obs_group_dict['heatindex_3'] = 'group_temperature'
 weewx.units.obs_group_dict['heatindex_4'] = 'group_temperature'
+
+weewx.units.obs_group_dict['stormRainlast'] = 'group_rain'
+weewx.units.obs_group_dict['rain60'] = 'group_rain'
+weewx.units.obs_group_dict['rain15'] = 'group_rain'
+
 weewx.units.obs_group_dict['rain_rate_hi_last_15_min'] = 'group_rain'
 #weewx.units.obs_group_dict['rainfall_last_24_hr'] = 'group_rain'
 weewx.units.obs_group_dict['rain_storm_start_at'] = 'group_time'
