@@ -16,6 +16,10 @@ https://www.pc-wetterstation.de/wetter/weewx/belchertown/index.html .
 2) Install the driver
 
 ```
+V5:
+sudo weectl extension install weewx-weatherlinkliveudp.zip
+
+V4:
 sudo wee_extension --install weatherlinkliveudp.zip
 ``` 
 
@@ -147,6 +151,8 @@ weectl database add-column windGustSpeed10_2 --type=REAL -y
     [[SeasonsDavis]]
         # The SeasonsReport uses the 'Seasons' skin, which contains the
         # images, templates and plots for the report.
+        # lang = en
+        lang = de
         skin = SeasonsDavis
         enable = true
 
@@ -159,6 +165,7 @@ weectl database add-column windGustSpeed10_2 --type=REAL -y
     [[DavisHealth]]
         # The SeasonsReport uses the 'Seasons' skin, which contains the
         # images, templates and plots for the report.
+        lang = en
         skin = health
         enable = false
 
