@@ -3,7 +3,7 @@
  * Distributed under terms of GPLv3.  See LICENSE.txt for your rights.
  */
 
-const cookie_prefix = "weewx.seasons.";
+const cookie_prefix = "weewx.seasonsdavis.";
 let year_type = get_state('year_type', 'year');
 
 function setup(widgets) {
@@ -36,7 +36,6 @@ function setup(widgets) {
 function choose_history(id) {
     choose_div('history', id, ['day', 'week', 'month', 'year', 'chronicle']);
     choose_col('hilo', id, ['week', 'month', 'year', 'alltime']);
-    choose_col('totals', id, ['week', 'month', 'year', 'alltime']);
     // choose_rainyear(id);
 }
 

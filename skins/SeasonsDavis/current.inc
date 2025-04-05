@@ -4,23 +4,17 @@
 #errorCatcher Echo
 #encoding UTF-8
 
-#set $allways_lang = False
-#set $use_lang = False
-#try
- #if $SKIN_VERSION != '' or $allways_lang == True
-  #set $use_lang = True
- #end if
-#except
- #pass
-#end try
-
 #set $ecowitt_hw = [('GW1000'),
                     ('GW1100'),
+                    ('GW1200'),
                     ('GW2000'),
+                    ('GW3000'),
                     ('WH2650'),
                     ('WH2680'),
                     ('WS1900'),
                     ('WN1980'),
+                    ('WS39'),
+                    ('WS38'),
                     ('HP2550'),
                     ('ecowitt-client'),
                     ]
@@ -98,7 +92,7 @@
 ('ET24','#42B4B4','current','1'),
  ('monthET','','current','1'),
  ('yearET','','current','1'),
-('- - - - - - - - - - - - - - - - - - - - -','','','3'),
+('- - - - - - - - - - - - - - - - - - - - -','','','0'),
 ('pm25_1','#0e25f2','current','1'),
  ('pm25_avg_24h_ch1','','current','1'),
 ('pm25_2','#0e25f2','current','1'),
@@ -187,8 +181,8 @@
 ('- - - - - - - - - - - - - - - - - - - - -','','','3'),
 ('GTS','#25ea2f','current','1'),
 ('GTSdate','#25ea2f','day','2'),
-('- - - - - - - - - - - - - - - - - - - - -','','','3'),
-('Daten CO2-Sensor','','current','3'),
+('- - - - - - - - - - - - - - - - - - - - -','','','0'),
+('Daten CO2-Sensor','','current','0'),
 ('co2_Temp','#f20e3c','current','1'),
 ('co2_Hum','#0e25f2','current','1'),
 ('co2','#32e5d9','current','1'),
@@ -200,7 +194,7 @@
  ('pm25_24h_co2','','current','1'),
 ('pm10_0','#0e25f2','current','1'),
  ('pm10_24h_co2','','current','1'),
-('- - - - - - - - - - - - - - - - - - - - -','','','3'),
+('- - - - - - - - - - - - - - - - - - - - -','','','0'),
 ('Daten Air','','current','0'),
 ('co2_Temp','#f20e3c','current','0'),
 ('co2_Hum','#0e25f2','current','0'),
@@ -225,8 +219,8 @@
 ('pm_10_last_1_hour','','current','1'),
 ('pm_10_last_3_hours','','current','1'),
 ('pm_10_last_24_hours','','current','1'),
-('- - - - - - - - - - - - - - - - - - - - -','#E238EC','','3'),
-('Daten VUE','','current','3'),
+('- - - - - - - - - - - - - - - - - - - - -','#E238EC','','0'),
+('Daten VUE','','current','0'),
 ('outTemp_2','#e85d0d','current','1'),
 ('outHumidity_2','#82dbf2','current','1'),
 ('heatindex2','#b44242','current','1'),
@@ -355,11 +349,7 @@
 
 <div id='current_widget' class="widget">
   <div class="widget_title">
-    #if not $use_lang
-      Current Conditions
-    #else 
       $gettext("Current Conditions")
-    #end if
     <a class="widget_control"
       onclick="toggle_widget('current')">&diams;</a>
   </div>
@@ -403,7 +393,7 @@
    #else
      #set $xt = getattr($current, $x[0])
    #end if 
-  
+
    #if ($xt.has_data and $x[3] == '1') or $x[3] == '2' or $x[3] == '3'
     #if $usefontcolor == 1
       #set $color = $x[1]
@@ -467,11 +457,7 @@
         <td class="data">$xt</td>
       </tr>
       <tr>
-        #if not $use_lang
-         #set $xt2 = 'Tag'
-        #else 
-         #set $xt2 = $gettext("Day")
-        #end if
+        #set $xt2 = $gettext("Day")
         <td class="label"><font color=$color>$obs.label[$x[0]]$ztx $xt2</font></td>
         #if 'wx_binding' in $x[2]
          #set $xt1 = $day(data_binding=$txt).rain.sum
@@ -480,17 +466,21 @@
         #end if
         <td class="data">$xt1</td>
       </tr>
+      #if $ecowitt == 0
+      <tr>
+        #set $xt2 = $gettext("Week")
+        <td class="label"><font color=$color>$obs.label[$x[0]]$ztx $xt2</font></td>
+        #set $xt1 = $week.rain.sum
+        <td class="data">$xt1</td>
+      </tr>
+      #end if
     #elif $x[0] == 'hail'
       <tr>
         <td class="label"><font color=$color>$obs.label[$x[0]]$ztx</font></td>
         <td class="data">$xt</td>
       </tr>
       <tr>
-        #if not $use_lang
-         #set $xt2 = 'Tag'
-        #else 
          #set $xt2 = $gettext("Day")
-        #end if
         <td class="label"><font color=$color>$obs.label[$x[0]]$ztx $xt2</font></td>
         #if 'wx_binding' in $x[2]
          #set $xt1 = $day(data_binding=$txt).hail.sum
@@ -515,13 +505,8 @@
     #elif $x[0] == 'radcompensation'
       <tr>
         <td class="label"><span><font color=$color>$obs.label[$x[0]]$ztx</font></span></td>
-          #if not $use_lang
-           #set $xt1 = 'Ein'
-           #set $xt2 = 'Aus'
-          #else 
            #set $xt1 = $gettext("Ein")
            #set $xt2 = $gettext("Aus")
-          #end if
         #if $xt.raw == 1
           #set $ztxt = $xt1
         #else
@@ -617,13 +602,8 @@
         <td class="label"><font color=$color>$obs.label[$x[0]]$ztx$xt1</font></td>
         #if $x[2] == 'deltatime'
           #set $xt = $getattr($day, $x[0])
-          #if not $use_lang
-           #set $ztx = 'Std.'
-           #set $xt1 = $xt.sum.format("%(hour)d:%(minute)02d:%(second)02d")
-          #else 
-           #set $ztx = $gettext("hrs.")
+          #set $ztx = $gettext("hrs.")
            #set $xt1 = $xt.sum.long_form(format_string="%(hour)d:%(minute)02d:%(second)02d")
-          #end if
           <td class="data">$xt1 $ztx</td>
         #elif $x[2] == 'trend' or $atx == 'trend'
             #set $ztx = ''

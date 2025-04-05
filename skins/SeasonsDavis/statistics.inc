@@ -4,16 +4,6 @@
 #errorCatcher Echo
 #encoding UTF-8
 
-#set $allways_lang = False
-#set $use_lang = False
-#try
- #if $SKIN_VERSION != '' or $allways_lang == True
-  #set $use_lang = True
- #end if
-#except
- #pass
-#end try
-
 #set $archive_data = [$day, $week, $month, $year, $alltime]
 
 ## The list of observations determines which database fields will be shown in
@@ -27,11 +17,15 @@
 
 #set $ecowitt_hw = [('GW1000'),
                     ('GW1100'),
+                    ('GW1200'),
                     ('GW2000'),
+                    ('GW3000'),
                     ('WH2650'),
                     ('WH2680'),
                     ('WS1900'),
                     ('WN1980'),
+                    ('WS39'),
+                    ('WS38'),
                     ('HP2550'),
                     ('ecowitt-client'),
                     ]
@@ -85,6 +79,7 @@
 ('pm25_2','#0e25f2','','1'),
 ('pm25_3','#0e25f2','','1'),
 ('pm25_4','#0e25f2','','1'),
+('- - - - - - - - - - - - - - - - - - - - -','','','3'),
 ('inTemp','#c95716','','1'),
 ('inHumidity','#17c4ef','','1'),
 ('extraTemp1','#e85d0d','','1'),
@@ -159,11 +154,7 @@
 
 <div id="statistics_widget" class="widget">
   <div class="widget_title">
-   #if not $use_lang
-    Statistics
-   #else
     $gettext("Statistics")
-   #end if
   </div>
   <div class="widget_contents">
 
@@ -172,19 +163,11 @@
       <tr>
         <td></td>
         <td></td>
-        #if not $use_lang
-          <th>Today</th>
-          <th class="hilo_week">Week</th>
-          <th class="hilo_month">Month</th>
-          <th class="hilo_year">Year</th>
-          <th class="hilo_alltime">Alltime</th>
-        #else 
           <th>$gettext("Today")</th>
           <th class="hilo_week">$gettext("Week")</th>
           <th class="hilo_month">$gettext("Month")</th>
           <th class="hilo_year">$gettext("Year")</th>
           <th class="hilo_alltime">$gettext("Alltime")</th>
-        #end if 
       </tr>
 
 #for $x in $observ
@@ -243,11 +226,7 @@
     #if $x[0] == 'wind'
       <tr>
         <td class="label"><font color=$color>
-        #if not $use_lang
-          Max Wind
-        #else 
           $gettext("Max Wind")
-        #end if 
         </font></td>
         <td class="units">
           $unit.label.wind<br/>
@@ -264,11 +243,7 @@
     #elif $x[0] == 'windavg'  
       <tr>
         <td class="label"><font color=$color>
-        #if not $use_lang
-          Average Wind
-        #else 
           $gettext("Average Wind")
-        #end if
         </font></td>
         <td class="units">$unit.label.wind</td>
         #for $archive in $archive_data
@@ -280,11 +255,7 @@
     #elif $x[0] == 'windrms'      
       <tr>
         <td class="label"><font color=$color>
-        #if not $use_lang
-          RMS Wind
-        #else 
           $gettext("RMS Wind")
-        #end if
         </font></td>
         <td class="units">$unit.label.wind</td>
         #for $archive in $archive_data
@@ -295,13 +266,8 @@
     #elif $x[0] == 'windvecavg'
       <tr>
         <td class="label"><font color=$color>
-        #if not $use_lang
-          Vector Average<br/>
-          Vector Direction
-         #else 
           $gettext("Vector Average")<br/>
           $gettext("Vector Direction")
-        #end if
         </font></td>
         <td class="units">
           $unit.label.wind<br/>

@@ -6,16 +6,6 @@
 #encoding UTF-8
 ##
 
-#set $allways_lang = False
-#set $use_lang = False
-#try
- #if $SKIN_VERSION != '' or $allways_lang == True
-  #set $use_lang = True
- #end if
-#except
- #pass
-#end try
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -84,7 +74,6 @@
 
       <div id="plot_group">
         <div id="history_widget" class="widget">
-         #if $use_lang 
            <div id="plot_title" class="widget_title">$gettext("History"):&nbsp;&nbsp; 
             <a class="button_selected" id="button_history_day"
                onclick="choose_history('day')">$gettext("Day")</a>
@@ -96,19 +85,6 @@
                onclick="choose_history('year')">$gettext("Year")</a>
             <a class="button" id="button_history_chronicle"
                onclick="choose_history('chronicle')">$gettext("Chronicle")</a>
-          #else
-           <div id="plot_title" class="widget_title">History:&nbsp;&nbsp;
-            <a class="button_selected" id="button_history_day"
-               onclick="choose_history('day')">Day</a>
-            <a class="button" id="button_history_week"
-               onclick="choose_history('week')">Week</a>
-            <a class="button" id="button_history_month"
-               onclick="choose_history('month')">Month</a>
-            <a class="button" id="button_history_year"
-               onclick="choose_history('year')">Year</a>
-            <a class="button" id="button_history_chronicle"
-               onclick="choose_history('chronicle')">Chronicle</a>
-          #end if
           </div>
           <div id="history_day" class="plot_container">
             <img src="daybarometer.png" alt="$obs.label.barometer"/>
@@ -126,7 +102,9 @@
              <img src="daygust1.png"   alt="$obs.label.windGustSpeed10" />
             #end if
             <img src="daywinddir.png"   alt="$obs.label.windDir" />
-            <img src="daywinddir1.png"   alt="$obs.label.windDir" />
+            #if $day.windDir_2.has_data
+             <img src="daywinddir1.png"   alt="$obs.label.windDir_2" />
+            #end if
             <img src="daywindvec.png"   alt="$obs.label.windvec" />
             <img src="dayrain.png"      alt="$obs.label.rain" />
             <img src="dayrainbar.png"      alt="$obs.label.rain" />
